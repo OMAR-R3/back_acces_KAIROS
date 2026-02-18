@@ -1,0 +1,67 @@
+# =========================
+# DEPENDENCIAS
+# =========================
+node_modules/
+
+# =========================
+# BUILD / NEXT
+# =========================
+.next/
+out/
+dist/
+build/
+
+# =========================
+# VARIABLES DE ENTORNO (NUNCA SUBIR)
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# =========================
+# LOGS
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# SISTEMA OPERATIVO
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# ARCHIVOS DE EDITOR
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# CACHE
+# =========================
+.cache/
+*.tsbuildinfo
+
+# =========================
+# ARCHIVOS TEMPORALES
+# =========================
+tmp/
+temp/
+
+# =========================
+# TEST COVERAGE
+# =========================
+coverage/
+
+# =========================
+# CONFIGURACIONES LOCALES
+# =========================
+.vercel
