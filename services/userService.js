@@ -50,14 +50,12 @@ import { supabase } from "../db/supabaseClient.js";
 */
 
 export async function getUsuarios(filters = {}) {
-    // 1. Extraemos 'role' en lugar de 'rol' para que coincida con tu log
     const { q, rol, page = 1, limit = 10 } = filters;
 
     let query = supabase
         .from("Usuarios_Internos")
         .select("*", { count: "exact" });
 
-    // 2. Usamos la variable 'role' que ahora sí tiene la palabra "Staff"
     if (rol && rol.trim() !== "") {
         // OJO: En Supabase tu columna sí se llama "rol", 
         // así que el filtro queda: columna "rol" igual a la variable role
