@@ -65,3 +65,5 @@ coverage/
 # CONFIGURACIONES LOCALES
 # =========================
 .vercel
+
+.gitignore
