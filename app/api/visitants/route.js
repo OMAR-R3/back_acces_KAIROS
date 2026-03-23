@@ -6,8 +6,8 @@ import {
     createVisitante,
     updateVisitante,
     deleteVisitante
-} from "../../../services/visitorService.js";
-import { checkAuth } from "../../../middlewares/auth.js";
+} from "@/services/visitorService";
+import { checkAuth } from "@/middlewares/auth";
 
 /* =========================
    Helper de errores
@@ -16,30 +16,25 @@ function handleError(err) {
     console.error("API ERROR:", err);
     return NextResponse.json(
         { success: false, error: err.message },
-        { status: 500 }
+        { status: err.status || 500 }  // respeta 401, 404, etc.
     );
 }
 
 /* =========================
-   GET
+   GET — lista de visitantes (solo admin)
 ========================= */
 export async function GET(req) {
     try {
         checkAuth(req);
-
         const data = await getVisitantes();
-
-        return NextResponse.json(
-            { success: true, data },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }
 }
 
 /* =========================
-   POST
+   POST — crear visitante manualmente (solo admin)
 ========================= */
 export async function POST(req) {
     try {
@@ -48,22 +43,21 @@ export async function POST(req) {
         const body = await req.json();
 
         if (!body?.nombre || !body?.correo) {
-            throw new Error("Nombre y correo son requeridos");
+            return NextResponse.json(
+                { success: false, error: "Nombre y correo son requeridos" },
+                { status: 400 }
+            );
         }
 
         const visitante = await createVisitante(body);
-
-        return NextResponse.json(
-            { success: true, data: visitante },
-            { status: 201 }
-        );
+        return NextResponse.json({ success: true, data: visitante }, { status: 201 });
     } catch (err) {
         return handleError(err);
     }
 }
 
 /* =========================
-   PUT
+   PUT — actualizar visitante (solo admin)
 ========================= */
 export async function PUT(req) {
     try {
@@ -72,22 +66,21 @@ export async function PUT(req) {
         const body = await req.json();
 
         if (!body?.id) {
-            throw new Error("ID requerido");
+            return NextResponse.json(
+                { success: false, error: "ID requerido" },
+                { status: 400 }
+            );
         }
 
         const visitante = await updateVisitante(body.id, body);
-
-        return NextResponse.json(
-            { success: true, data: visitante },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data: visitante }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }
 }
 
 /* =========================
-   DELETE
+   DELETE — eliminar visitante (solo admin)
 ========================= */
 export async function DELETE(req) {
     try {
@@ -96,15 +89,14 @@ export async function DELETE(req) {
         const body = await req.json();
 
         if (!body?.id) {
-            throw new Error("ID requerido");
+            return NextResponse.json(
+                { success: false, error: "ID requerido" },
+                { status: 400 }
+            );
         }
 
         const visitante = await deleteVisitante(body.id);
-
-        return NextResponse.json(
-            { success: true, data: visitante },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data: visitante }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }

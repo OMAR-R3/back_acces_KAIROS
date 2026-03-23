@@ -1,67 +1,56 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/db/supabaseClient";
+export const runtime = "nodejs";
 
+import { NextResponse } from "next/server";
+import { checkAuth, checkRole } from "@/middlewares/auth";
+import { validateQR } from "@/services/visitService";
+import { createLog } from "@/services/logService";
+
+/*
+  POST /api/visits/validate
+  Usado por el guardia en entrada
+
+  Body: { token: "uuid-del-qr", usuario_id: number }
+*/
 export async function POST(req) {
     try {
-        const { qrData } = await req.json();
+        /*checkAuth(req);*/
+        const payload = checkRole(req, ["guardia", "recepcionista", "administrador"]);
 
-        if (!qrData) {
+        const { token, usuario_id } = await req.json();
+
+        if (!token) {
             return NextResponse.json(
-                { error: "QR inválido" },
+                { error: "Token QR requerido" },
                 { status: 400 }
             );
         }
 
-        // qrData ejemplo:
-        // VISIT:15:mi_super_secreto_2026
+        const visita = await validateQR(token);
 
-        const parts = qrData.split(":");
-
-        if (parts.length !== 3 || parts[0] !== "VISIT") {
-            return NextResponse.json(
-                { error: "Formato de QR inválido" },
-                { status: 400 }
-            );
-        }
-
-        const visitId = parts[1];
-        const secret = parts[2];
-
-        // Validar secreto
-        if (secret !== process.env.QR_SECRET) {
-            return NextResponse.json(
-                { error: "QR no autorizado" },
-                { status: 403 }
-            );
-        }
-
-        // Buscar visita
-        const { data: visit, error } = await supabase
-            .from("Visitas")
-            .select(`
-        *,
-        Visitantes (*),
-        Departamentos (*)
-      `)
-            .eq("id", visitId)
-            .single();
-
-        if (error || !visit) {
-            return NextResponse.json(
-                { error: "Visita no encontrada" },
-                { status: 404 }
-            );
+        // Registrar en logs que el guardia validó el acceso
+        if (usuario_id) {
+            await createLog(
+                payload.id,
+                `Validó acceso QR de visita ID ${visita.id} — ${visita.Visitantes?.nombre}`
+            ).catch(err => console.error("Error registrando log:", err.message));
         }
 
         return NextResponse.json({
+            success: true,
             valid: true,
-            visit
+            data: visita
         });
 
     } catch (error) {
+        // validateQR lanza error con mensaje específico si el QR no es válido
+        const isClientError = [
+            "QR no válido",
+            "Visita no está aprobada"
+        ].some(msg => error.message.includes(msg));
+
         return NextResponse.json(
-            { error: "Error validando QR" },
-            { status: 500 }
+            { success: false, valid: false, error: error.message },
+            { status: isClientError ? 400 : 500 }
         );
     }
 }

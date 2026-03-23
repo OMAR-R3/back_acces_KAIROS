@@ -1,4 +1,4 @@
-import { supabase } from "../db/supabaseClient.js";
+import { supabase } from "@/db/supabaseClient";
 
 /* =========================
    GET - Todos los departamentos
@@ -6,7 +6,8 @@ import { supabase } from "../db/supabaseClient.js";
 export async function getDepartamentos() {
     const { data, error } = await supabase
         .from("Departamentos")
-        .select("*");
+        .select("*")
+        .order("nombre", { ascending: true });
 
     if (error) throw error;
     return data;
@@ -16,6 +17,8 @@ export async function getDepartamentos() {
    POST - Crear departamento
 ========================= */
 export async function createDepartamento(departamento) {
+    console.log("Intentando crear departamento:", departamento);
+
     const { data, error } = await supabase
         .from("Departamentos")
         .insert(departamento)

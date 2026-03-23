@@ -6,105 +6,85 @@ import {
     createDepartamento,
     updateDepartamento,
     deleteDepartamento
-} from "../../../services/departmentService.js";
-import { checkAuth } from "../../../middlewares/auth.js";
+} from "@/services/departmentService";
+import { checkAuth, checkRole } from "@/middlewares/auth";
 
-/* =========================
-   Helper de errores
-========================= */
 function handleError(err) {
     console.error("API ERROR:", err);
     return NextResponse.json(
         { success: false, error: err.message },
-        { status: 500 }
+        { status: err.status || 500 }
     );
 }
 
-/* =========================
-   GET
-========================= */
-export async function GET(req) {
+/* GET — público, el extranet lo necesita para el formulario */
+export async function GET() {
     try {
-        checkAuth(req);
-
         const data = await getDepartamentos();
-
-        return NextResponse.json(
-            { success: true, data },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }
 }
 
-/* =========================
-   POST
-========================= */
+/* POST — solo admin */
 export async function POST(req) {
     try {
-        checkAuth(req);
+        /*checkAuth(req);*/
+        const payload = checkRole(req, ["administrador"]);
 
         const body = await req.json();
-
         if (!body?.nombre) {
-            throw new Error("Nombre requerido");
+            return NextResponse.json(
+                { success: false, error: "Nombre requerido" },
+                { status: 400 }
+            );
         }
 
         const departamento = await createDepartamento(body);
-
-        return NextResponse.json(
-            { success: true, data: departamento },
-            { status: 201 }
-        );
+        return NextResponse.json({ success: true, data: departamento }, { status: 201 });
     } catch (err) {
         return handleError(err);
     }
 }
 
-/* =========================
-   PUT
-========================= */
+/* PUT — solo admin */
 export async function PUT(req) {
     try {
-        checkAuth(req);
+        /*checkAuth(req);*/
+        const payload = checkRole(req, ["administrador"]);
 
         const body = await req.json();
-
         if (!body?.id) {
-            throw new Error("ID requerido");
+            return NextResponse.json(
+                { success: false, error: "ID requerido" },
+                { status: 400 }
+            );
         }
 
         const departamento = await updateDepartamento(body.id, body);
-
-        return NextResponse.json(
-            { success: true, data: departamento },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data: departamento }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }
 }
 
-/* =========================
-   DELETE
-========================= */
+/* DELETE — solo admin */
 export async function DELETE(req) {
     try {
-        checkAuth(req);
+        /*checkAuth(req);*/
+        const payload = checkRole(req, ["administrador"]);
 
         const body = await req.json();
-
         if (!body?.id) {
-            throw new Error("ID requerido");
+            return NextResponse.json(
+                { success: false, error: "ID requerido" },
+                { status: 400 }
+            );
         }
 
         const departamento = await deleteDepartamento(body.id);
-
-        return NextResponse.json(
-            { success: true, data: departamento },
-            { status: 200 }
-        );
+        return NextResponse.json({ success: true, data: departamento }, { status: 200 });
     } catch (err) {
         return handleError(err);
     }

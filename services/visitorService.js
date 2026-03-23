@@ -13,6 +13,20 @@ export async function getVisitantes() {
 }
 
 /* =========================
+   GET - Buscar visitante por correo
+========================= */
+export async function getVisitanteByCorreo(correo) {
+    const { data, error } = await supabase
+        .from("Visitantes")
+        .select("*")
+        .eq("correo", correo)
+        .maybeSingle(); // No falla si no existe, regresa null
+
+    if (error) throw error;
+    return data; // null si no existe
+}
+
+/* =========================
    POST - Crear visitante
 ========================= */
 export async function createVisitante(visitante) {

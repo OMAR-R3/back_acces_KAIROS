@@ -66,4 +66,14 @@ coverage/
 # =========================
 .vercel
 
+# =========================
+# DOCUMENTOS LOCALES (almacenamiento de identidad)
+# =========================
+storage/
+
+# =========================
+# SCRIPTS SENSIBLES
+# =========================
+scripts/
+
 .gitignore

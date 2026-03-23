@@ -1,14 +1,67 @@
+import { verifyToken } from "@/utils/jwt";
+
+/* =========================
+   checkAuth — verifica JWT en cookie
+   Lanza error si no hay sesión válida
+========================= */
 export function checkAuth(req) {
-    // El nombre del header debe ser exacto al que mandas en el JS
-    const recibido = req.headers.get("x-api-key");
-    const esperado = process.env.API_KEY;
+    if (req.method === "OPTIONS") return;
 
-    console.log("CHECKAUTH - RECIBIDO:", recibido);
-    console.log("CHECKAUTH - ESPERADO:", esperado);
+    const token = getTokenFromRequest(req);
 
-    if (!recibido || recibido !== esperado) {
-        const error = new Error("AUTH_FAIL");
-        error.status = 401; // Importante para el catch
+    if (!token) {
+        const error = new Error("No autenticado");
+        error.status = 401;
         throw error;
     }
+
+    try {
+        const payload = verifyToken(token);
+        return payload; // { id, nombre, rol }
+    } catch {
+        const error = new Error("Sesión inválida o expirada");
+        error.status = 401;
+        throw error;
+    }
+}
+
+/* =========================
+   checkRole — verifica que el usuario tenga el rol requerido
+   Uso: checkRole(req, ["administrador", "recepcionista"])
+========================= */
+export function checkRole(req, rolesPermitidos = []) {
+    const payload = checkAuth(req);
+
+    if (!rolesPermitidos.includes(payload.rol)) {
+        const error = new Error("No tienes permisos para esta acción");
+        error.status = 403;
+        throw error;
+    }
+
+    return payload; // retorna el payload para usarlo en la ruta
+}
+
+/* =========================
+   Helper interno — extrae token de cookie o header
+========================= */
+function getTokenFromRequest(req) {
+    // Primero buscar en cookie (dashboard admin)
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+        const cookies = Object.fromEntries(
+            cookieHeader.split(";").map(c => {
+                const [key, ...val] = c.trim().split("=");
+                return [key, val.join("=")];
+            })
+        );
+        if (cookies["auth_token"]) return cookies["auth_token"];
+    }
+
+    // Fallback: Bearer token en header Authorization
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+        return authHeader.slice(7);
+    }
+
+    return null;
 }
