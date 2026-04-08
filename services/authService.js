@@ -2,10 +2,8 @@ import bcrypt from "bcryptjs";
 import { supabase } from "@/db/supabaseClient";
 import { signToken } from "@/utils/jwt";
 
-/* =========================
-   Login — valida credenciales y devuelve token
-========================= */
-export async function loginUsuario({ nombre_usuario, password }) {
+
+export async function loginUsuario({ nombre_usuario, password }, dispositivo = "") {
     if (!nombre_usuario || !password) {
         const error = new Error("Usuario y contraseña son requeridos");
         error.status = 400;
@@ -40,13 +38,13 @@ export async function loginUsuario({ nombre_usuario, password }) {
     const token = signToken({
         id: usuario.id,
         nombre: `${usuario.nombre} ${usuario.apellido_paterno}`,
-        rol: usuario.rol
+        rol: usuario.rol,
+        dispositivo  // ← agregar al payload del JWT
     });
 
     // Nunca devolver la contraseña
     const { password: _, ...usuarioSinPassword } = usuario;
-
-    return { token, usuario: usuarioSinPassword };
+    return { token, usuario: { ...usuarioSinPassword, dispositivo } };
 }
 
 /* =========================

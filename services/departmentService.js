@@ -57,6 +57,13 @@ export async function deleteDepartamento(id) {
         .select()
         .single();
 
-    if (error) throw error;
+    if (error) {
+        if (error.code === "23503") {
+            const err = new Error("No se puede eliminar este departamento porque tiene visitas registradas");
+            err.status = 409;
+            throw err;
+        }
+        throw error;
+    }
     return data;
 }
