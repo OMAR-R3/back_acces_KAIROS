@@ -9,7 +9,7 @@ export async function getUsuarios(filters = {}) {
 
     let query = supabase
         .from("Usuarios_Internos")
-        .select("id, nombre, apellido_paterno, apellido_materno, rol, created_at", { count: "exact" });
+        .select("id, nombre, apellido_paterno, apellido_materno, rol, correo, created_at", { count: "exact" });
     if (rol?.trim()) {
         query = query.eq("rol", rol);
     }

@@ -116,3 +116,30 @@ export const resendQREmail = async ({ email, name, date, time, qrBase64 }) => {
         ]
     });
 };
+
+export const sendResetPasswordEmail = async ({ email, nombre, link }) => {
+    await transporter.sendMail({
+        from: `"Control de Acceso" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "🔑 Recuperación de contraseña — Proyecto Kairos",
+        html: `
+            <h2>Hola ${nombre}</h2>
+            <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+            <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+            <a href="${link}" style="
+                display: inline-block;
+                padding: 0.75rem 1.5rem;
+                background: #1a56db;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: bold;
+                margin: 1rem 0;
+            ">Restablecer contraseña</a>
+            <p>Este enlace expira en <strong>15 minutos</strong>.</p>
+            <p>Si no solicitaste este cambio, ignora este correo.</p>
+            <br/>
+            <small style="color: #888;">Por seguridad, nunca compartas este enlace.</small>
+        `
+    });
+};
