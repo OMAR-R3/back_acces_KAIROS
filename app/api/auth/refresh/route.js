@@ -28,8 +28,8 @@ export async function POST(req) {
 
         response.cookies.set("auth_token", nuevoToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: true,
+            sameSite: "none",
             maxAge: 60 * 60 * 8
         });
 

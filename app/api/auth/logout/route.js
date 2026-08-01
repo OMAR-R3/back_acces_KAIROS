@@ -11,8 +11,8 @@ export async function POST() {
     // Borrar la cookie
     response.cookies.set("auth_token", "", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none",
         maxAge: 0 // expira inmediatamente
     });
 
