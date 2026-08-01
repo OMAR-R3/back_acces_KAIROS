@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const isProd = process.env.NODE_ENV === "production";
 
 const prodAllowedOrigins = [
-    "https://tu-dominio-produccion.com",
+    "https://kairos-intranet.duckdns.org",
 ];
 
 function isOriginAllowed(origin: string): boolean {
