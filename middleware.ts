@@ -4,6 +4,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 const prodAllowedOrigins = [
     "https://kairos-intranet.duckdns.org",
+    "https://kairos-extranet.duckdns.org"
 ];
 
 function isOriginAllowed(origin: string): boolean {
