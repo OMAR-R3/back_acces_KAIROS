@@ -39,6 +39,8 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
+RUN mkdir -p /app/storage/documents && chown -R nextjs:nodejs /app/storage
+
 USER nextjs
 
 EXPOSE 3000
