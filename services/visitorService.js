@@ -6,7 +6,7 @@ import { supabase } from "../db/supabaseClient.js";
 export async function getVisitantes() {
     const { data, error } = await supabase
         .from("Visitantes")
-        .select("*");
+        .select("id, nombre, apellido_paterno, apellido_materno, correo, telefono, created_at")
 
     if (error) throw error;
     return data;

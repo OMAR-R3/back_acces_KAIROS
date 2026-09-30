@@ -11,7 +11,7 @@ export const getAllVisits = async (filters = {}) => {
         .from("Visitas")
         .select(`
             *,
-            Visitantes (*),
+            Visitantes (id, nombre, apellido_paterno, apellido_materno, correo, telefono, created_at),
             Departamentos (*)
         `)
         .order("created_at", { ascending: false });
@@ -33,7 +33,7 @@ export const getVisitById = async (id) => {
         .from("Visitas")
         .select(`
             *,
-            Visitantes (*),
+            Visitantes (id, nombre, apellido_paterno, apellido_materno, correo, telefono, created_at),
             Departamentos (*),
             Documentos (*)
         `)
