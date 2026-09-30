@@ -3,9 +3,12 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { loginUsuario } from "@/services/authService";
 import { createLog } from "@/services/logService";
+import { checkRateLimit } from "@/middlewares/rateLimit";
 
 export async function POST(req) {
     try {
+        checkRateLimit(req, { keySuffix: "login-interno" });
+
         const body = await req.json();
 
         // Obtener info del navegador

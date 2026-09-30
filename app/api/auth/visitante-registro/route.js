@@ -2,9 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { registerVisitante } from "@/services/authService";
+import { checkRateLimit } from "@/middlewares/rateLimit";
 
 export async function POST(req) {
     try {
+        checkRateLimit(req, { keySuffix: "visitante-registro", max: 3 });
+
         const body = await req.json();
 
         if (

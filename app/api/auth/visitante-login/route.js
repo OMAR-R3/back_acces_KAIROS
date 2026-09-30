@@ -2,9 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { loginVisitante } from "@/services/authService";
+import { checkRateLimit } from "@/middlewares/rateLimit";
 
 export async function POST(req) {
     try {
+        checkRateLimit(req, { keySuffix: "visitante-login" });
+
         const body = await req.json();
 
         const userAgent = req.headers.get("user-agent") || "Dispositivo desconocido";
