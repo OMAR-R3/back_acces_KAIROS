@@ -8,6 +8,7 @@ import {
     deleteVisitante
 } from "@/services/visitorService";
 import { checkAuth } from "@/middlewares/auth";
+import { checkRole } from "@/middlewares/auth";
 
 /* =========================
    Helper de errores
@@ -25,7 +26,7 @@ function handleError(err) {
 ========================= */
 export async function GET(req) {
     try {
-        checkAuth(req);
+        checkRole(req, ["administrador", "recepcionista"]);
         const data = await getVisitantes();
         return NextResponse.json({ success: true, data }, { status: 200 });
     } catch (err) {
@@ -38,7 +39,7 @@ export async function GET(req) {
 ========================= */
 export async function POST(req) {
     try {
-        checkAuth(req);
+        checkRole(req, ["administrador", "recepcionista"]);
 
         const body = await req.json();
 
@@ -61,7 +62,7 @@ export async function POST(req) {
 ========================= */
 export async function PUT(req) {
     try {
-        checkAuth(req);
+        checkRole(req, ["administrador", "recepcionista"]);
 
         const body = await req.json();
 
@@ -84,7 +85,7 @@ export async function PUT(req) {
 ========================= */
 export async function DELETE(req) {
     try {
-        checkAuth(req);
+        checkRole(req, ["administrador", "recepcionista"]);
 
         const body = await req.json();
 
