@@ -106,7 +106,7 @@ export async function loginVisitante({ correo, password }, dispositivo = "") {
 export async function registerVisitante({
     nombre, apellido_paterno, apellido_materno, correo, telefono, password,
 }) {
-    if (!nombre || !apellido_paterno || !apellido_materno || !correo || !telefono || !password) {
+    if (!nombre || !apellido_paterno || !correo || !telefono || !password) {
         const error = new Error("Todos los campos son requeridos");
         error.status = 400;
         throw error;

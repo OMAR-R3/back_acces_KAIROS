@@ -11,7 +11,7 @@ export async function POST(req) {
         const body = await req.json();
 
         if (
-            !body?.nombre || !body?.apellido_paterno || !body?.apellido_materno ||
+            !body?.nombre || !body?.apellido_paterno ||
             !body?.correo || !body?.telefono || !body?.password
         ) {
             return NextResponse.json(
