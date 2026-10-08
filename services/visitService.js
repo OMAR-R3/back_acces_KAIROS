@@ -95,7 +95,11 @@ export const createVisit = async (visitData) => {
         .maybeSingle();
 
     if (existingError) throw new Error(existingError.message);
-    if (existing) throw new Error("Ya existe una visita registrada con esos datos");
+    if (existing) {
+        const err = new Error("Ya existe una visita registrada con esos datos");
+        err.status = 409;
+        throw err;
+    }
 
     // Insertar visita en estado pendiente, sin QR aún
     const { data: visit, error: insertError } = await supabase
