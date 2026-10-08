@@ -1,8 +1,9 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { checkRole } from "@/middlewares/checkRole";
+import { checkRole } from "@/middlewares/auth";
 import { checkRateLimit } from "@/middlewares/rateLimit";
+
 import { createVisit } from "@/services/visitService";
 import { supabase } from "@/lib/supabase";
 
@@ -41,12 +42,9 @@ function bad(message, status = 400) {
 
 export async function POST(req) {
     try {
-        const auth = await checkRole(req, ["visitante"]);
-        if (auth instanceof Response) return auth;
-        const payload = auth.payload ?? auth;
+        const payload = checkRole(req, ["visitante"]);
 
-        const limited = checkRateLimit(req, { keySuffix: "visita-crear", max: 10 });
-        if (limited instanceof Response) return limited;
+        checkRateLimit(req, { keySuffix: "visita-crear", max: 10 });
 
         let body;
         try {
