@@ -96,19 +96,6 @@ export async function POST(req) {
             motivo
         });
 
-        // Historial inicial. No se tumba la visita si esto falla, solo se registra.
-        const { error: histError } = await supabase
-            .from("Historial_Estados")
-            .insert({
-                visita_id: visita.id,
-                estado: visita.estado ?? "pendiente",
-                usuario_id: null
-            });
-
-        if (histError) {
-            console.error("Historial_Estados (visits/me):", histError.message);
-        }
-
         return NextResponse.json(
             {
                 success: true,
