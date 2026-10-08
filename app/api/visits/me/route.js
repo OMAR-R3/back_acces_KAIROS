@@ -12,7 +12,7 @@ import { supabase } from "@/db/supabaseClient";
 // El visitante_id sale del token, nunca del body.
 // La visita queda "pendiente" y sin QR hasta que el personal la apruebe.
 
-const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function hoyMexico() {
@@ -70,6 +70,8 @@ export async function POST(req) {
         if (!HORA_REGEX.test(hora_inicio)) {
             return bad("Hora inválida, usa el formato HH:MM");
         }
+        // Se guarda siempre como HH:MM:SS, igual que las visitas del extranet
+        const hora = hora_inicio.length === 5 ? `${hora_inicio}:00` : hora_inicio;
         if (!motivo) {
             return bad("El motivo es requerido");
         }
@@ -90,7 +92,7 @@ export async function POST(req) {
             visitante_id: payload.id,
             depto_id,
             fecha,
-            hora_inicio,
+            hora_inicio: hora,
             motivo
         });
 
@@ -116,7 +118,7 @@ export async function POST(req) {
                     estado: visita.estado ?? "pendiente",
                     depto_id,
                     fecha,
-                    hora_inicio
+                    hora_inicio: hora
                 }
             },
             { status: 201 }
