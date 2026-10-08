@@ -5,7 +5,7 @@ import { checkRole } from "@/middlewares/auth";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 
 import { createVisit } from "@/services/visitService";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/db/supabaseClient";
 
 // POST /api/visits/me
 // Crea una visita para el visitante autenticado (token de visitante).
