@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { checkRole } from "@/middlewares/auth";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 
-import { createVisit } from "@/services/visitService";
 import { supabase } from "@/db/supabaseClient";
+import { createVisit, getVisitsByVisitanteId } from "@/services/visitService";
 
 // POST /api/visits/me
 // Crea una visita para el visitante autenticado (token de visitante).
@@ -117,5 +117,41 @@ export async function POST(req) {
         }
         console.error("POST /api/visits/me:", error);
         return bad("No se pudo crear la visita", 500);
+    }
+}
+// GET /api/visits/me
+// Devuelve el historial de visitas del visitante autenticado.
+// El visitante_id sale del token, nunca de la URL.
+export async function GET(req) {
+    try {
+        const payload = checkRole(req, ["visitante"]);
+        checkRateLimit(req, { keySuffix: "visitas-listar", max: 60 });
+
+        const visitas = await getVisitsByVisitanteId(payload.id);
+
+        const data = visitas.map((v) => ({
+            id: v.id,
+            folio: "KV-" + String(v.id).padStart(6, "0"),
+            estado: v.estado,
+            fecha: typeof v.fecha === "string" ? v.fecha.slice(0, 10) : v.fecha,
+            hora_inicio: v.hora_inicio,
+            motivo: v.motivo ?? "",
+            departamento: v.Departamentos
+                ? {
+                    id: v.Departamentos.id,
+                    nombre: v.Departamentos.nombre,
+                    ubicacion: v.Departamentos.ubicacion
+                }
+                : null
+        }));
+
+        return NextResponse.json({ success: true, data });
+
+    } catch (error) {
+        if (error?.status && error.status < 500) {
+            return bad(error.message, error.status);
+        }
+        console.error("GET /api/visits/me:", error);
+        return bad("No se pudieron obtener las visitas", 500);
     }
 }

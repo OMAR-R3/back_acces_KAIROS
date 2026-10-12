@@ -3,8 +3,8 @@ import { generateQR, generateQRToken } from "../utils/qrGenerator.js";
 import { sendApprovalEmail, sendCancellationEmail } from "../services/emailService.js";
 import { createLog } from "@/services/logService.js";
 /* =========================
-   GET ALL - con filtros opcionales
-   ?estado=pendiente&fecha=2026-03-22
+    GET ALL - con filtros opcionales
+    estado=pendiente&fecha=2026-03-22
 ========================= */
 export const getAllVisits = async (filters = {}) => {
     let query = supabase
@@ -26,7 +26,7 @@ export const getAllVisits = async (filters = {}) => {
 };
 
 /* =========================
-   GET BY ID - con documentos
+    GET BY ID - con documentos
 ========================= */
 export const getVisitById = async (id) => {
     const { data, error } = await supabase
@@ -45,7 +45,7 @@ export const getVisitById = async (id) => {
 };
 
 /* =========================
-   GET BY CORREO - para extranet
+    GET BY CORREO - para extranet
 ========================= */
 export const getVisitsByCorreo = async (correo) => {
     // Primero buscar el visitante
@@ -78,8 +78,31 @@ export const getVisitsByCorreo = async (correo) => {
 };
 
 /* =========================
-   CREATE - solo registro, sin QR ni correo
-   Usado desde el formulario público
+    GET BY VISITANTE ID - para la app movil (historial propio)
+========================= */
+export const getVisitsByVisitanteId = async (visitanteId) => {
+    const { data, error } = await supabase
+        .from("Visitas")
+        .select(`
+            id,
+            fecha,
+            hora_inicio,
+            motivo,
+            estado,
+            created_at,
+            Departamentos (id, nombre, ubicacion)
+        `)
+        .eq("visitante_id", Number(visitanteId))
+        .order("fecha", { ascending: false })
+        .order("hora_inicio", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+/* =========================
+    CREATE - solo registro, sin QR ni correo
+    Usado desde el formulario público
 ========================= */
 export const createVisit = async (visitData) => {
     const { visitante_id, depto_id, fecha, hora_inicio, motivo } = visitData;
@@ -121,7 +144,7 @@ export const createVisit = async (visitData) => {
 };
 
 /* =========================
-   CREATE INTERNAL - admin registra sin aprobación
+    CREATE INTERNAL - admin registra sin aprobación
 ========================= */
 export const createVisitInternal = async (visitData, usuario_id) => {
     const { visitante_id, depto_id, fecha, hora_inicio, motivo } = visitData;
@@ -191,7 +214,7 @@ export const createVisitInternal = async (visitData, usuario_id) => {
 };
 
 /* =========================
-   UPDATE STATUS - aprobar / cancelar / finalizar
+    UPDATE STATUS - aprobar / cancelar / finalizar
 ========================= */
 export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     const estadosValidos = ["aprobada", "cancelada", "finalizada"];
@@ -278,7 +301,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
 };
 
 /* =========================
-   VALIDATE QR - para guardia en entrada
+    VALIDATE QR - para guardia en entrada
 ========================= */
 export const validateQR = async (token) => {
     const { data, error } = await supabase
@@ -301,7 +324,7 @@ export const validateQR = async (token) => {
 };
 
 /* =========================
-   DELETE
+    DELETE
 ========================= */
 export const deleteVisit = async (id) => {
     const { error } = await supabase
