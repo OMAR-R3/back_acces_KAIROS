@@ -101,6 +101,29 @@ export const getVisitsByVisitanteId = async (visitanteId) => {
 };
 
 /* =========================
+    GET DETALLE - visita propia del visitante (app movil)
+========================= */
+export const getVisitByIdAndVisitanteId = async (id, visitanteId) => {
+    const { data, error } = await supabase
+        .from("Visitas")
+        .select(`
+            id,
+            fecha,
+            hora_inicio,
+            motivo,
+            estado,
+            created_at,
+            Departamentos (id, nombre, ubicacion)
+        `)
+        .eq("id", Number(id))
+        .eq("visitante_id", Number(visitanteId))
+        .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+/* =========================
     CREATE - solo registro, sin QR ni correo
     Usado desde el formulario público
 ========================= */
