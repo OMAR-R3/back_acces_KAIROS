@@ -2,6 +2,7 @@ import { supabase } from "../db/supabaseClient.js";
 import { generateQR, generateQRToken } from "../utils/qrGenerator.js";
 import { sendApprovalEmail, sendCancellationEmail } from "../services/emailService.js";
 import { createLog } from "@/services/logService.js";
+import { sendVisitStatusPush } from "./pushNotificationService.js";
 /* =========================
     GET ALL - con filtros opcionales
     estado=pendiente&fecha=2026-03-22
@@ -258,6 +259,8 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
 
     if (fetchError || !visit) throw new Error("Visita no encontrada");
 
+    if (visit.estado === estado) return { id, estado, motivo: motivo || null };
+
     let qrToken = visit.qr_code;
     let qrImage = null;
 
@@ -267,16 +270,42 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
         qrImage = await generateQR(qrToken);
     }
 
-    // Actualizar estado en Visitas
-    const { error: updateError } = await supabase
+    // Comparar y actualizar en una sola operación: solo quien conserve
+    // el estado leído obtiene una fila y puede emitir notificaciones.
+    const { data: updatedVisit, error: updateError } = await supabase
         .from("Visitas")
         .update({
             estado,
             qr_code: estado === "aprobada" ? qrToken : visit.qr_code
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("estado", visit.estado)
+        .select("id")
+        .maybeSingle();
 
     if (updateError) throw new Error(updateError.message);
+
+    if (!updatedVisit) {
+        const { data: currentVisit, error: currentError } = await supabase
+            .from("Visitas")
+            .select("estado")
+            .eq("id", id)
+            .maybeSingle();
+        if (currentError) throw new Error(currentError.message);
+        if (!currentVisit) throw new Error("Visita no encontrada");
+        if (currentVisit.estado === estado) return { id, estado, motivo: motivo || null };
+        const err = new Error("El estado de la visita cambió. Consulta la visita e intenta nuevamente");
+        err.status = 409;
+        throw err;
+    }
+
+    if (visit.estado !== estado && ["aprobada", "cancelada"].includes(estado)) {
+        try {
+            await sendVisitStatusPush({ id: visit.id, visitante_id: visit.visitante_id, estado });
+        } catch {
+            console.error("Push: fallo inesperado al notificar cambio de estado", { visita_id: visit.id });
+        }
+    }
 
     // Registrar en historial
     await supabase.from("Historial_Estados").insert([{
