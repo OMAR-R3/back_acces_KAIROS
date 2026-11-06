@@ -8,6 +8,16 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// Plain text, no visitor data or user-controlled HTML. Dedicated lookup proof.
+export const sendLookupCodeEmail = async ({ email, code }) => {
+    await transporter.sendMail({
+        from: `"Control de Acceso" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Kairos: código para consultar tus visitas",
+        text: `Tu código es ${code}. Expira en 10 minutos y solo funciona en la solicitud donde lo pediste. No lo compartas. Si no lo solicitaste, ignora este correo.`,
+    });
+};
+
 /* =========================
    Helpers de formato
 ========================= */
