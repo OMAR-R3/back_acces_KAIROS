@@ -7,7 +7,7 @@ import { GET } from "../../app/api/visits/me/[id]/qr/route.js";
 
 afterEach(() => vi.useRealTimers());
 describe("visitor QR date compatibility", () => {
-    it.each(["2026-11-07", "2026-11-07T00:00:00+00:00"])("returns the same window for %s", async fecha => {
+    it.each(["2026-11-07", "2026-11-07T00:00:00+00:00", "2026-11-07 00:00:00+00:00", "2026-11-07T23:59:59.123456-08:00"])("returns the same window for %s", async fecha => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date("2026-11-07T06:10:45Z"));
         mocks.visit.mockResolvedValue({ id: 1, estado: "aprobada", qr_code: "token",
