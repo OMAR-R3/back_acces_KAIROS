@@ -10,12 +10,15 @@ const request = (body = { token }, headers = {}) => new Request("https://example
     method: "POST", body: typeof body === "string" ? body : JSON.stringify(body),
     headers: { "content-type": "application/json", "x-api-key": "a".repeat(64), ...headers },
 });
+let clock = Date.UTC(2026, 10, 7);
 beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(clock += 120_000);
     vi.clearAllMocks();
     vi.stubEnv("CHECKER_API_KEY", "a".repeat(64));
     mocks.consume.mockResolvedValue("valido");
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe("QR consumption route", () => {
     it.each([["valido", 200], ["expirado", 422], ["utilizado", 409], ["invalido", 400]])("maps %s without disclosing visit data", async (result, status) => {
