@@ -125,6 +125,28 @@ export const getVisitByIdAndVisitanteId = async (id, visitanteId) => {
 };
 
 /* =========================
+    QR de una visita del visitante (id + visitante_id)
+========================= */
+export const getVisitQRByIdAndVisitanteId = async (id, visitanteId) => {
+    const { data, error } = await supabase
+        .from("Visitas")
+        .select(`
+            id,
+            fecha,
+            hora_inicio,
+            estado,
+            qr_code,
+            Accesos_QR (id)
+        `)
+        .eq("id", Number(id))
+        .eq("visitante_id", Number(visitanteId))
+        .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+/* =========================
     CREATE - solo registro, sin QR ni correo
     Usado desde el formulario público
 ========================= */
