@@ -3,9 +3,25 @@ import { supabase } from "../db/supabaseClient.js";
 const TOKEN_REGEX = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{10,100}\]$/;
 const TIMEOUT_MS = 5000;
 
+const TEXTOS = {
+    aprobada: {
+        title: "Visita aprobada",
+        body: (folio) => `Tu visita ${folio} fue aprobada. Consulta los detalles en Mis visitas.`,
+    },
+    cancelada: {
+        title: "Visita cancelada",
+        body: (folio) => `Tu visita ${folio} fue cancelada. Revisa los detalles en Mis visitas.`,
+    },
+    // Texto provisional
+    rechazada: {
+        title: "Visita rechazada",
+        body: (folio) => `Tu visita ${folio} fue rechazada. Revisa los detalles en Mis visitas.`,
+    },
+};
+
 // Best effort: un fallo push nunca debe afectar el estado guardado.
 export const sendVisitStatusPush = async ({ id, visitante_id, estado }) => {
-    if (!["aprobada", "cancelada"].includes(estado)) return;
+    if (!Object.keys(TEXTOS).includes(estado)) return;
 
     const controller = new AbortController();
     let timer;
@@ -32,10 +48,8 @@ export const sendVisitStatusPush = async ({ id, visitante_id, estado }) => {
                 signal: controller.signal,
                 body: JSON.stringify(batch.map(to => ({
                     to,
-                    title: estado === "aprobada" ? "Visita aprobada" : "Visita cancelada",
-                    body: estado === "aprobada"
-                        ? `Tu visita ${folio} fue aprobada. Consulta los detalles en Mis visitas.`
-                        : `Tu visita ${folio} fue cancelada. Revisa los detalles en Mis visitas.`,
+                    title: TEXTOS[estado].title,
+                    body: TEXTOS[estado].body(folio),
                     data: { visita_id: id },
                 }))),
             });

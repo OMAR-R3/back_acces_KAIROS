@@ -1,7 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ from: vi.fn(), query: vi.fn(), update: vi.fn(), read: vi.fn(), reread: vi.fn(), history: vi.fn(),
-    approval: vi.fn(), cancellation: vi.fn(), log: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+    from: vi.fn(), query: vi.fn(), update: vi.fn(), read: vi.fn(), reread: vi.fn(), history: vi.fn(),
+    approval: vi.fn(), cancellation: vi.fn(), log: vi.fn()
+}));
 vi.mock("../../db/supabaseClient.js", () => ({ supabase: { from: mocks.from } }));
 vi.mock("../../utils/qrGenerator.js", () => ({ generateQR: vi.fn(async () => "image"), generateQRToken: vi.fn(() => "qr") }));
 vi.mock("../../services/emailService.js", () => ({ sendApprovalEmail: mocks.approval, sendCancellationEmail: mocks.cancellation }));
@@ -16,8 +18,10 @@ let fetchMock;
 let tokenFilter;
 beforeEach(() => {
     vi.resetAllMocks();
-    visit = { id: 42, visitante_id: 7, estado: "pendiente", fecha: "2026-10-29", qr_code: null,
-        Visitantes: { nombre: "Ana", correo: "ana@example.com" } };
+    visit = {
+        id: 42, visitante_id: 7, estado: "pendiente", fecha: "2026-10-29", qr_code: null,
+        Visitantes: { nombre: "Ana", correo: "ana@example.com" }
+    };
     tokenFilter = vi.fn(() => ({ abortSignal: mocks.query }));
     mocks.query.mockResolvedValue({ data: [{ token }], error: null });
     mocks.read.mockImplementation(async () => ({ data: visit ? { ...visit } : null, error: null }));
@@ -37,21 +41,27 @@ beforeEach(() => {
         if (table === "Historial_Estados") return { insert: mocks.history };
         return {
             select: () => ({ eq: () => ({ single: mocks.read, maybeSingle: mocks.reread }) }),
-            update: values => ({ eq: (idColumn, id) => {
-                expect(idColumn).toBe("id");
-                return { eq: (stateColumn, previousState) => {
-                    expect(stateColumn).toBe("estado");
-                    return { select: columns => {
-                        expect(columns).toBe("id");
-                        return { maybeSingle: () => mocks.update(values, id, previousState) };
-                    } };
-                } };
-            } }),
+            update: values => ({
+                eq: (idColumn, id) => {
+                    expect(idColumn).toBe("id");
+                    return {
+                        eq: (stateColumn, previousState) => {
+                            expect(stateColumn).toBe("estado");
+                            return {
+                                select: columns => {
+                                    expect(columns).toBe("id");
+                                    return { maybeSingle: () => mocks.update(values, id, previousState) };
+                                }
+                            };
+                        }
+                    };
+                }
+            }),
         };
     });
     fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: [{ status: "ok", id: "ticket" }] }) }));
     vi.stubGlobal("fetch", fetchMock);
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => { });
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -82,12 +92,16 @@ describe("notificaciones push de cambios de estado", () => {
         expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toHaveLength(1);
     });
     it("divide más de cien tokens en lotes válidos", async () => {
-        mocks.query.mockResolvedValue({ data: Array.from({ length: 101 }, (_, index) => ({
-            token: `ExponentPushToken[abcdefghij${index}]`,
-        })), error: null });
-        fetchMock.mockImplementation(async (_, options) => ({ ok: true, json: async () => ({
-            data: JSON.parse(options.body).map(() => ({ status: "ok", id: "ticket" })),
-        }) }));
+        mocks.query.mockResolvedValue({
+            data: Array.from({ length: 101 }, (_, index) => ({
+                token: `ExponentPushToken[abcdefghij${index}]`,
+            })), error: null
+        });
+        fetchMock.mockImplementation(async (_, options) => ({
+            ok: true, json: async () => ({
+                data: JSON.parse(options.body).map(() => ({ status: "ok", id: "ticket" })),
+            })
+        }));
         await sendVisitStatusPush({ ...visit, estado: "aprobada" });
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body).length)).toEqual([100, 1]);
@@ -177,8 +191,8 @@ describe("notificaciones push de cambios de estado", () => {
     });
     it.each(["consulta", "Expo"])("limita la espera de %s a cinco segundos", async stage => {
         vi.useFakeTimers();
-        if (stage === "consulta") mocks.query.mockImplementation(() => new Promise(() => {}));
-        else fetchMock.mockImplementation(() => new Promise(() => {}));
+        if (stage === "consulta") mocks.query.mockImplementation(() => new Promise(() => { }));
+        else fetchMock.mockImplementation(() => new Promise(() => { }));
         const result = updateVisitStatus(42, { estado: "aprobada" }, 3);
         await vi.advanceTimersByTimeAsync(5000);
         await expect(result).resolves.toMatchObject({ estado: "aprobada" });
@@ -188,5 +202,48 @@ describe("notificaciones push de cambios de estado", () => {
         mocks.approval.mockRejectedValue(new Error("SMTP failed"));
         await expect(updateVisitStatus(42, { estado: "aprobada" }, 3)).resolves.toMatchObject({ estado: "aprobada" });
         expect(fetchMock).toHaveBeenCalledOnce();
+    });
+});
+
+
+describe("acción rechazar", () => {
+    it("rechaza una visita pendiente, guarda historial y log, manda push y no manda correo", async () => {
+        await expect(updateVisitStatus("42", { estado: "rechazada", motivo: "Sin cupo" }, 3))
+            .resolves.toEqual({ id: "42", estado: "rechazada", motivo: "Sin cupo" });
+        expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ estado: "rechazada" }), "42", "pendiente");
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual([{
+            to: token,
+            title: "Visita rechazada",
+            body: "Tu visita KV-000042 fue rechazada. Revisa los detalles en Mis visitas.",
+            data: { visita_id: 42 },
+        }]);
+        expect(mocks.history).toHaveBeenCalledWith([
+            expect.objectContaining({ estado_nuevo: "rechazada", motivo: "Sin cupo" }),
+        ]);
+        expect(mocks.log).toHaveBeenCalledWith(3, expect.stringContaining("ID 42"));
+        expect(mocks.approval).not.toHaveBeenCalled();
+        expect(mocks.cancellation).not.toHaveBeenCalled();
+    });
+
+    it("exige motivo para rechazar", async () => {
+        await expect(updateVisitStatus("42", { estado: "rechazada", motivo: "  " }, 3))
+            .rejects.toThrow("El motivo es requerido para rechazar una visita");
+        expect(mocks.update).not.toHaveBeenCalled();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("no deja rechazar una visita que no está pendiente", async () => {
+        visit.estado = "aprobada";
+        await expect(updateVisitStatus("42", { estado: "rechazada", motivo: "Sin cupo" }, 3))
+            .rejects.toMatchObject({ status: 409, message: "Solo se puede rechazar una visita pendiente" });
+        expect(mocks.update).not.toHaveBeenCalled();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("rechazar una visita ya rechazada no repite el push", async () => {
+        visit.estado = "rechazada";
+        await expect(updateVisitStatus("42", { estado: "rechazada", motivo: "Sin cupo" }, 3))
+            .resolves.toEqual({ id: "42", estado: "rechazada", motivo: "Sin cupo" });
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });
