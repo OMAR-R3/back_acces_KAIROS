@@ -263,13 +263,16 @@ export const createVisitInternal = async (visitData, usuario_id) => {
     UPDATE STATUS - aprobar / cancelar / finalizar
 ========================= */
 export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
-    const estadosValidos = ["aprobada", "cancelada", "finalizada"];
+    const estadosValidos = ["aprobada", "cancelada", "finalizada", "rechazada"];
     if (!estadosValidos.includes(estado)) {
         throw new Error("Estado no válido");
     }
 
     if (estado === "cancelada" && (!motivo || motivo.trim() === "")) {
         throw new Error("El motivo es requerido para cancelar una visita");
+    }
+    if (estado === "rechazada" && (!motivo || motivo.trim() === "")) {
+        throw new Error("El motivo es requerido para rechazar una visita");
     }
 
     // Obtener visita + visitante
@@ -282,6 +285,12 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     if (fetchError || !visit) throw new Error("Visita no encontrada");
 
     if (visit.estado === estado) return { id, estado, motivo: motivo || null };
+
+    if (estado === "rechazada" && visit.estado !== "pendiente") {
+        const err = new Error("Solo se puede rechazar una visita pendiente");
+        err.status = 409;
+        throw err;
+    }
 
     let qrToken = visit.qr_code;
     let qrImage = null;
@@ -321,7 +330,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
         throw err;
     }
 
-    if (visit.estado !== estado && ["aprobada", "cancelada"].includes(estado)) {
+    if (visit.estado !== estado && ["aprobada", "cancelada", "rechazada"].includes(estado)) {
         try {
             await sendVisitStatusPush({ id: visit.id, visitante_id: visit.visitante_id, estado });
         } catch {
@@ -364,6 +373,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
         const accionLog = {
             aprobada: `Aprobó visita ID ${id} — ${visit.Visitantes?.nombre}`,
             cancelada: `Canceló visita ID ${id} — ${visit.Visitantes?.nombre} — Motivo: ${motivo}`,
+            rechazada: `Rechazó visita ID ${id} — ${visit.Visitantes?.nombre} — Motivo: ${motivo}`,
             finalizada: `Finalizó visita ID ${id} — ${visit.Visitantes?.nombre}`
         };
         await createLog(Number(usuario_id), accionLog[estado]);

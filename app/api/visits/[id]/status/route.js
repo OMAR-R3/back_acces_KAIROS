@@ -28,6 +28,14 @@ export async function PATCH(req, { params }) {
             );
         }
 
+        // Solo recepcionista y admin pueden rechazar
+        if (estado === "rechazada" && !["recepcionista", "administrador"].includes(payload.rol)) {
+            return NextResponse.json(
+                { error: "Solo recepcionista o administrador pueden rechazar visitas" },
+                { status: 403 }
+            );
+        }
+
         // 4️⃣ usuario_id viene del token, no del body
         const result = await updateVisitStatus(id, { estado, motivo }, payload.id);
 
