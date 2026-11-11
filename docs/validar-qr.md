@@ -3,8 +3,9 @@
 `POST /api/visits/validate-qr` requiere HTTPS, `Content-Type: application/json`,
 `x-api-key: <clave>` y un cuerpo con exclusivamente `{ "token": "<UUID v4>" }`.
 El cuerpo está limitado a 1024 bytes. No admite identidad del checador ni fechas
-del cliente. La ruta anterior `/api/visits/validate` conserva su comportamiento;
-el checador debe usar la nueva ruta para consumir accesos.
+del cliente. La ruta `/api/visits/validate` también consume accesos, con sesión
+y roles internos; consulta [su contrato](validar-qr-legado.md). El checador externo
+debe usar `/api/visits/validate-qr` con su API key.
 
 ## Configuración
 
