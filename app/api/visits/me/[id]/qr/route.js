@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkRole } from "@/middlewares/auth";
+import { verificarSesionVisitante } from "@/middlewares/sesionVisitante";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 import { getVisitQRByIdAndVisitanteId } from "@/services/visitService";
 import { calcularVentanaQR } from "@/utils/qrVigencia";
@@ -10,6 +11,7 @@ const bad = (message, status) =>
 export async function GET(req, { params }) {
     try {
         const payload = checkRole(req, ["visitante"]);
+        await verificarSesionVisitante(payload);
         checkRateLimit(req, { keySuffix: "visitas-qr", max: 30 });
 
         const { id } = await params;

@@ -7,6 +7,7 @@ import {
     createVisitante,
     updateVisitante,
 } from "@/services/visitorService";
+import { randomUUID } from "node:crypto";
 
 export async function loginUsuario({ nombre_usuario, password }, dispositivo = "") {
     if (!nombre_usuario || !password) {
@@ -92,7 +93,8 @@ export async function loginVisitante({ correo, password }, dispositivo = "") {
         rol: "visitante",
         correo: visitante.correo,
         dispositivo,
-    });
+    }, { jwtid: randomUUID() });
+
 
     const { password: _, ...visitanteSinPassword } = visitante;
     return { token, visitante: { ...visitanteSinPassword, dispositivo } };

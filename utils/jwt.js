@@ -3,9 +3,9 @@ import jwt from "jsonwebtoken";
 const SECRET = process.env.JWT_SECRET;
 const EXPIRATION = "8h"; // sesión de 8 horas, ajusta según necesites
 
-export function signToken(payload) {
+export function signToken(payload, { jwtid } = {}) {
     if (!SECRET) throw new Error("JWT_SECRET no está definido");
-    return jwt.sign(payload, SECRET, { expiresIn: EXPIRATION });
+    return jwt.sign(payload, SECRET, { expiresIn: EXPIRATION, ...(jwtid ? { jwtid } : {}) });
 }
 
 export function verifyToken(token) {
