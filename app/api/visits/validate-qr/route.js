@@ -23,7 +23,8 @@ async function readToken(req) {
             if (done) break;
             size += value.byteLength;
             if (size > 1024) {
-                await reader.cancel();
+                // Cancellation may remain pending; never delay the invalid response.
+                void reader.cancel().catch(() => {});
                 return null;
             }
             chunks.push(Buffer.from(value));
@@ -53,6 +54,7 @@ export async function POST(req) {
     } catch (error) {
         if (error?.status === 429) return reply("no_autorizado", 429, { "Retry-After": "60" });
         if (error?.status === 401) return reply("no_autorizado", 401);
+        console.error("POST /api/visits/validate-qr: servicio no disponible");
         return reply("error_servicio", 503);
     }
 }

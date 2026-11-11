@@ -15,10 +15,11 @@ beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(clock += 120_000);
     vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubEnv("CHECKER_API_KEY", "a".repeat(64));
     mocks.consume.mockResolvedValue("valido");
 });
-afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("QR consumption route", () => {
     it.each([["valido", 200], ["expirado", 422], ["utilizado", 409], ["invalido", 400]])("maps %s without disclosing visit data", async (result, status) => {
@@ -27,6 +28,7 @@ describe("QR consumption route", () => {
         expect(res.status).toBe(status);
         expect(await res.json()).toEqual({ success: result === "valido", resultado: result });
         expect(res.headers.get("cache-control")).toBe("no-store");
+        expect(console.error).not.toHaveBeenCalled();
     });
     it.each(["null", "[]", "{", JSON.stringify({ token, checador: "spoof" }), JSON.stringify({ token: "x".repeat(1100) })])("rejects malformed input without consuming %s", async body => {
         expect((await POST(request(body))).status).toBe(400);
@@ -34,13 +36,20 @@ describe("QR consumption route", () => {
     });
     it("rejects wrong credentials before consuming", async () => {
         expect((await POST(request({ token }, { "x-api-key": "wrong" }))).status).toBe(401);
+        expect(console.error).not.toHaveBeenCalled();
         expect(mocks.consume).not.toHaveBeenCalled();
     });
     it("hides service failures", async () => {
-        mocks.consume.mockRejectedValue(new Error("secret database detail"));
+        const sensitive = `secret database detail ${token} credential=private`;
+        const error = Object.assign(new Error(sensitive), { body: { token }, credentials: "private" });
+        mocks.consume.mockRejectedValue(error);
         const res = await POST(request());
         expect(res.status).toBe(503);
         expect(await res.json()).toEqual({ success: false, resultado: "error_servicio" });
+        expect(res.headers.get("cache-control")).toBe("no-store");
+        expect(console.error.mock.calls).toEqual([["POST /api/visits/validate-qr: servicio no disponible"]]);
+        expect(JSON.stringify(console.error.mock.calls)).not.toContain(token);
+        expect(JSON.stringify(console.error.mock.calls)).not.toContain("private");
     });
     it("limits wrong credentials even when forwarding headers change", async () => {
         let res;
@@ -49,6 +58,63 @@ describe("QR consumption route", () => {
         }
         expect(res.status).toBe(429);
         expect(res.headers.get("retry-after")).toBe("60");
+        expect(mocks.consume).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+    });
+});
+
+describe("bounded QR request body", () => {
+    const padded = size => JSON.stringify({ token }).padEnd(size, " ");
+    async function invalid(res) {
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ success: false, resultado: "invalido" });
+        expect(res.headers.get("cache-control")).toBe("no-store");
+        expect(mocks.consume).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+    }
+    it("accepts a valid JSON body of exactly 1024 bytes", async () => {
+        const body = padded(1024);
+        expect(Buffer.byteLength(body)).toBe(1024);
+        const res = await POST(request(body));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ success: true, resultado: "valido" });
+        expect(res.headers.get("cache-control")).toBe("no-store");
+        expect(mocks.consume).toHaveBeenCalledExactlyOnceWith(token);
+    });
+    it("rejects an otherwise valid JSON body of 1025 bytes", async () => {
+        const body = padded(1025);
+        expect(Buffer.byteLength(body)).toBe(1025);
+        await invalid(await POST(request(body)));
+    });
+    it.each(["pending", "rejected"])("stops fragmented reads despite %s cancellation", async kind => {
+        const body = Buffer.from(padded(1025));
+        const reader = {
+            read: vi.fn().mockResolvedValueOnce({ done: false, value: body.subarray(0, 1024) })
+                .mockResolvedValueOnce({ done: false, value: body.subarray(1024) })
+                .mockRejectedValue(new Error("must not read again")),
+            cancel: vi.fn(() => kind === "pending" ? new Promise(() => {}) : Promise.reject(new Error(`sensitive ${token}`))),
+            releaseLock: vi.fn(),
+        };
+        const req = { headers: request().headers, body: { getReader: () => reader } };
+        await invalid(await POST(req));
+        expect(reader.read).toHaveBeenCalledTimes(2);
+        expect(reader.cancel).toHaveBeenCalledOnce();
+        expect(reader.releaseLock).toHaveBeenCalledOnce();
+        // Vitest also fails the run if cancellation leaks an unhandled rejection.
+    });
+    it("counts bytes rather than Unicode characters", async () => {
+        const body = JSON.stringify({ token: "é".repeat(510) });
+        expect(body.length).toBeLessThan(1024);
+        expect(Buffer.byteLength(body)).toBeGreaterThan(1024);
+        await invalid(await POST(request(body)));
+    });
+    it("logs configuration failures with the same constant message", async () => {
+        vi.stubEnv("CHECKER_API_KEY", undefined);
+        const res = await POST(request());
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual({ success: false, resultado: "error_servicio" });
+        expect(res.headers.get("cache-control")).toBe("no-store");
+        expect(console.error.mock.calls).toEqual([["POST /api/visits/validate-qr: servicio no disponible"]]);
         expect(mocks.consume).not.toHaveBeenCalled();
     });
 });
