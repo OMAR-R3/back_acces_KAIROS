@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { checkRole } from "@/middlewares/auth";
+import { verificarSesionVisitante } from "@/middlewares/sesionVisitante";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 
 import { supabase } from "@/db/supabaseClient";
@@ -43,6 +44,7 @@ function bad(message, status = 400) {
 export async function POST(req) {
     try {
         const payload = checkRole(req, ["visitante"]);
+        await verificarSesionVisitante(payload);
 
         checkRateLimit(req, { keySuffix: "visita-crear", max: 10 });
 
@@ -125,6 +127,7 @@ export async function POST(req) {
 export async function GET(req) {
     try {
         const payload = checkRole(req, ["visitante"]);
+        await verificarSesionVisitante(payload);
         checkRateLimit(req, { keySuffix: "visitas-listar", max: 60 });
 
         const visitas = await getVisitsByVisitanteId(payload.id);

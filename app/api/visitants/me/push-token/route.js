@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { checkRole } from "@/middlewares/auth";
+import { verificarSesionVisitante } from "@/middlewares/sesionVisitante";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 import { upsertPushToken, deletePushToken } from "@/services/pushTokenService";
 
@@ -29,6 +30,7 @@ async function leerBody(req) {
 export async function POST(req) {
     try {
         const payload = checkRole(req, ["visitante"]);
+        await verificarSesionVisitante(payload);
         checkRateLimit(req, { keySuffix: "push-token-registrar", max: 20 });
 
         const body = await leerBody(req);
@@ -58,6 +60,7 @@ export async function POST(req) {
 export async function DELETE(req) {
     try {
         const payload = checkRole(req, ["visitante"]);
+        await verificarSesionVisitante(payload);
         checkRateLimit(req, { keySuffix: "push-token-borrar", max: 20 });
 
         const body = await leerBody(req);
