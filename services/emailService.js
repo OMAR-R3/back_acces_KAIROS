@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { formatQRFecha, formatQRHora } from "../utils/qrEmailDateTime.js";
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -59,8 +60,8 @@ export const sendApprovalEmail = async ({ email, name, date, time, qrBase64 }) =
         html: `
             <h2>Hola ${name} 👋</h2>
             <p>Tu visita ha sido <strong>aprobada</strong>.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <p>Presenta este código QR en la entrada:</p>
             <img src="cid:qrcode" alt="Código QR" />
             <br/>
@@ -110,8 +111,8 @@ export const resendQREmail = async ({ email, name, date, time, qrBase64 }) => {
         html: `
             <h2>Hola ${name} 👋</h2>
             <p>Aquí está tu código QR de acceso.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <img src="cid:qrcode" alt="Código QR" />
             <br/>
             <p>Preséntalo en la entrada el día de tu visita.</p>

@@ -66,6 +66,13 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("notificaciones push de cambios de estado", () => {
+    it("pasa la hora local de la visita al correo de aprobación", async () => {
+        visit.hora_inicio = "23:45:00";
+        await updateVisitStatus("42", { estado: "aprobada" }, 3);
+        expect(mocks.approval).toHaveBeenCalledWith(expect.objectContaining({
+            date: "2026-10-29", time: "23:45:00",
+        }));
+    });
     it.each([
         ["aprobada", "Visita aprobada", "Tu visita KV-000042 fue aprobada. Consulta los detalles en Mis visitas."],
         ["cancelada", "Visita cancelada", "Tu visita KV-000042 fue cancelada. Revisa los detalles en Mis visitas."],

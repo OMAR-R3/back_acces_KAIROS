@@ -355,6 +355,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
                 name: visit.Visitantes.nombre,
                 date: visit.fecha,
                 qrBase64: qrImage,
+                time: visit.hora_inicio,
             });
         } else if (estado === "cancelada") {
             await sendCancellationEmail({
