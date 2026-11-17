@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { formatQRFecha, formatQRHora } from "../utils/qrEmailDateTime.js";
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -19,34 +20,6 @@ export const sendLookupCodeEmail = async ({ email, code }) => {
 };
 
 /* =========================
-   Helpers de formato
-========================= */
-function formatFecha(fechaISO) {
-    const fecha = new Date(fechaISO);
-    return fecha.toLocaleDateString("es-MX", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "America/Mexico_City"
-    });
-}
-
-function formatHora(horaStr) {
-    // horaStr viene como "10:00:00" desde la BD
-    if (!horaStr) return "";
-    const [hours, minutes] = horaStr.split(":");
-    const fecha = new Date();
-    fecha.setHours(Number(hours), Number(minutes));
-    return fecha.toLocaleTimeString("es-MX", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "America/Mexico_City"
-    });
-}
-
-/* =========================
    Aprobación — con QR
 ========================= */
 export const sendApprovalEmail = async ({ email, name, date, time, qrBase64 }) => {
@@ -59,8 +32,8 @@ export const sendApprovalEmail = async ({ email, name, date, time, qrBase64 }) =
         html: `
             <h2>Hola ${name} 👋</h2>
             <p>Tu visita ha sido <strong>aprobada</strong>.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <p>Presenta este código QR en la entrada:</p>
             <img src="cid:qrcode" alt="Código QR" />
             <br/>
@@ -88,8 +61,8 @@ export const sendCancellationEmail = async ({ email, name, date, time, motivo })
         html: `
             <h2>Hola ${name}</h2>
             <p>Lamentamos informarte que tu visita ha sido <strong>cancelada</strong>.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <p><strong>Motivo:</strong> ${motivo}</p>
             <br/>
             <p>Si tienes dudas, comunícate con nosotros.</p>
@@ -110,8 +83,8 @@ export const resendQREmail = async ({ email, name, date, time, qrBase64 }) => {
         html: `
             <h2>Hola ${name} 👋</h2>
             <p>Aquí está tu código QR de acceso.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <img src="cid:qrcode" alt="Código QR" />
             <br/>
             <p>Preséntalo en la entrada el día de tu visita.</p>
