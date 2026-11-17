@@ -73,6 +73,14 @@ describe("notificaciones push de cambios de estado", () => {
             date: "2026-10-29", time: "23:45:00",
         }));
     });
+    it("pasa la fecha y hora originales al correo de cancelación", async () => {
+        visit.fecha = "2027-01-01";
+        visit.hora_inicio = "00:15:00";
+        await updateVisitStatus("42", { estado: "cancelada", motivo: "Cambio" }, 3);
+        expect(mocks.cancellation).toHaveBeenCalledExactlyOnceWith({
+            email: "ana@example.com", name: "Ana", date: "2027-01-01", time: "00:15:00", motivo: "Cambio",
+        });
+    });
     it.each([
         ["aprobada", "Visita aprobada", "Tu visita KV-000042 fue aprobada. Consulta los detalles en Mis visitas."],
         ["cancelada", "Visita cancelada", "Tu visita KV-000042 fue cancelada. Revisa los detalles en Mis visitas."],

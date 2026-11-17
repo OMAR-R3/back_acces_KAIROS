@@ -20,34 +20,6 @@ export const sendLookupCodeEmail = async ({ email, code }) => {
 };
 
 /* =========================
-   Helpers de formato
-========================= */
-function formatFecha(fechaISO) {
-    const fecha = new Date(fechaISO);
-    return fecha.toLocaleDateString("es-MX", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "America/Mexico_City"
-    });
-}
-
-function formatHora(horaStr) {
-    // horaStr viene como "10:00:00" desde la BD
-    if (!horaStr) return "";
-    const [hours, minutes] = horaStr.split(":");
-    const fecha = new Date();
-    fecha.setHours(Number(hours), Number(minutes));
-    return fecha.toLocaleTimeString("es-MX", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "America/Mexico_City"
-    });
-}
-
-/* =========================
    Aprobación — con QR
 ========================= */
 export const sendApprovalEmail = async ({ email, name, date, time, qrBase64 }) => {
@@ -89,8 +61,8 @@ export const sendCancellationEmail = async ({ email, name, date, time, motivo })
         html: `
             <h2>Hola ${name}</h2>
             <p>Lamentamos informarte que tu visita ha sido <strong>cancelada</strong>.</p>
-            <p><strong>Fecha:</strong> ${formatFecha(date)}</p>
-            <p><strong>Hora:</strong> ${formatHora(time)}</p>
+            <p><strong>Fecha:</strong> ${formatQRFecha(date)}</p>
+            <p><strong>Hora:</strong> ${formatQRHora(time)}</p>
             <p><strong>Motivo:</strong> ${motivo}</p>
             <br/>
             <p>Si tienes dudas, comunícate con nosotros.</p>

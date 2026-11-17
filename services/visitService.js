@@ -362,6 +362,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
                 email: visit.Visitantes.correo,
                 name: visit.Visitantes.nombre,
                 date: visit.fecha,
+                time: visit.hora_inicio,
                 motivo,
             });
         }

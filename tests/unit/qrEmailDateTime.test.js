@@ -6,7 +6,7 @@ const { sendMail } = vi.hoisted(() => ({ sendMail: vi.fn() }));
 vi.mock("nodemailer", () => ({
     default: { createTransport: () => ({ sendMail }) },
 }));
-import { sendApprovalEmail, resendQREmail } from "../../services/emailService.js";
+import { sendApprovalEmail, sendCancellationEmail, resendQREmail } from "../../services/emailService.js";
 
 const cases = [
     ["2026-11-17", "10:30:00", "10:30 a. m.", "martes, 17 de noviembre de 2026"],
@@ -37,6 +37,17 @@ describe("QR email local calendar contract (independent of process TZ)", () => {
             env: { ...process.env, TZ: tz }, encoding: "utf8",
         });
         expect(JSON.parse(output)).toEqual(cases.map(([, , time, date]) => [date, time]));
+    });
+
+    it.each(cases)("renders the original cancellation date %s and time %s", async (date, time, expectedTime, expectedDate) => {
+        await sendCancellationEmail({
+            email: "test@example.com", name: "Visitante", date, time, motivo: "Cambio de agenda",
+        });
+        expect(sendMail).toHaveBeenCalledOnce();
+        const mail = sendMail.mock.calls[0][0];
+        expect(mail.html).toContain(`<strong>Fecha:</strong> ${expectedDate}`);
+        expect(mail.html).toContain(`<strong>Hora:</strong> ${expectedTime}`);
+        expect(mail.html).toContain("<strong>Motivo:</strong> Cambio de agenda");
     });
 
     for (const send of [sendApprovalEmail, resendQREmail]) {
