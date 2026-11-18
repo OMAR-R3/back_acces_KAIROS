@@ -13,9 +13,15 @@ import { sendVisitStatusPush } from "../../services/pushNotificationService.js";
 import { updateVisitStatus } from "../../services/visitService.js";
 
 const token = "ExpoPushToken[abcdefghij12345]";
+const secondToken = "ExpoPushToken[abcdefghij67890]";
+const unregistered = { status: "error", details: { error: "DeviceNotRegistered" } };
+const accepted = { status: "ok", id: "ticket" };
 let visit;
 let fetchMock;
 let tokenFilter;
+let deleteTokenFilter;
+let deleteVisitorFilter;
+let deleteRequest;
 beforeEach(() => {
     vi.resetAllMocks();
     visit = {
@@ -23,6 +29,9 @@ beforeEach(() => {
         Visitantes: { nombre: "Ana", correo: "ana@example.com" }
     };
     tokenFilter = vi.fn(() => ({ abortSignal: mocks.query }));
+    deleteRequest = vi.fn().mockResolvedValue({ error: null });
+    deleteVisitorFilter = vi.fn(() => ({ abortSignal: deleteRequest }));
+    deleteTokenFilter = vi.fn(() => ({ eq: deleteVisitorFilter }));
     mocks.query.mockResolvedValue({ data: [{ token }], error: null });
     mocks.read.mockImplementation(async () => ({ data: visit ? { ...visit } : null, error: null }));
     mocks.reread.mockImplementation(async () => ({ data: visit ? { estado: visit.estado } : null, error: null }));
@@ -37,7 +46,12 @@ beforeEach(() => {
     });
     mocks.history.mockResolvedValue({ error: null });
     mocks.from.mockImplementation(table => {
-        if (table === "Dispositivos_Push") return { select: () => ({ eq: tokenFilter }) };
+        if (table === "Dispositivos_Push") {
+            return {
+                select: () => ({ eq: tokenFilter }),
+                delete: () => ({ eq: deleteTokenFilter }),
+            };
+        }
         if (table === "Historial_Estados") return { insert: mocks.history };
         return {
             select: () => ({ eq: () => ({ single: mocks.read, maybeSingle: mocks.reread }) }),
@@ -66,6 +80,68 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("notificaciones push de cambios de estado", () => {
+    it.each([
+        ["elimina el token de un dispositivo no registrado", unregistered, true],
+        ["conserva el token ante otro error de Expo", { status: "error", details: { error: "MessageTooBig" } }, false],
+        ["conserva el token cuando Expo acepta el envío", accepted, false],
+    ])("%s", async (_, ticket, shouldDelete) => {
+        fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: [ticket] }) });
+
+        await sendVisitStatusPush({ ...visit, estado: "aprobada" });
+
+        expect(deleteTokenFilter.mock.calls).toEqual(shouldDelete ? [["token", token]] : []);
+        expect(deleteVisitorFilter.mock.calls).toEqual(shouldDelete ? [["visitante_id", 7]] : []);
+    });
+
+    it("conserva la asociación entre cada ticket y su token en lotes mixtos", async () => {
+        const tokens = Array.from({ length: 101 }, (_, index) => `ExpoPushToken[abcdefghij${index}]`);
+        mocks.query.mockResolvedValue({ data: tokens.map(value => ({ token: value })) });
+        const firstBatch = Array(100).fill(accepted);
+        firstBatch[0] = { status: "error", details: { error: "MessageRateExceeded" } };
+        firstBatch[17] = unregistered;
+        fetchMock
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ data: firstBatch }) })
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [unregistered] }) });
+
+        await sendVisitStatusPush({ ...visit, estado: "aprobada" });
+
+        expect(fetchMock.mock.calls.flatMap(([, options]) =>
+            JSON.parse(options.body).map(message => message.to))).toEqual(tokens);
+        expect(deleteTokenFilter.mock.calls).toEqual([["token", tokens[17]], ["token", tokens[100]]]);
+    });
+
+    it("omite el borrado si la cantidad de tickets impide asociarlos con certeza", async () => {
+        mocks.query.mockResolvedValue({ data: [{ token }, { token: secondToken }] });
+        fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: [unregistered] }) });
+
+        await sendVisitStatusPush({ ...visit, estado: "aprobada" });
+
+        expect(deleteTokenFilter).not.toHaveBeenCalled();
+    });
+
+    it.each(["respuesta de Supabase", "rechazo de la consulta"])(
+        "continúa limpiando los demás tokens ante un fallo de borrado por %s", async failure => {
+            mocks.query.mockResolvedValue({ data: [{ token }, { token: secondToken }] });
+            fetchMock.mockResolvedValue({
+                ok: true, json: async () => ({ data: [unregistered, unregistered] }),
+            });
+            if (failure === "respuesta de Supabase") {
+                deleteRequest.mockResolvedValueOnce({ error: { message: token } });
+            } else {
+                deleteRequest.mockRejectedValueOnce(new Error(token));
+            }
+
+            await expect(sendVisitStatusPush({ ...visit, estado: "aprobada" })).resolves.toBeUndefined();
+
+            expect(deleteTokenFilter.mock.calls).toEqual([["token", token], ["token", secondToken]]);
+            expect(deleteRequest).toHaveBeenCalledTimes(2);
+            expect(console.error).toHaveBeenCalledWith(
+                "Push: no se pudo eliminar un token inválido", { visita_id: 42 },
+            );
+            expect(JSON.stringify(console.error.mock.calls)).not.toContain(token);
+        },
+    );
+
     it.each([
         ["aprobada", "Visita aprobada", "Tu visita KV-000042 fue aprobada. Consulta los detalles en Mis visitas."],
         ["cancelada", "Visita cancelada", "Tu visita KV-000042 fue cancelada. Revisa los detalles en Mis visitas."],
