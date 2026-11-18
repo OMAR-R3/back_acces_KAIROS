@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import { saveFile, deleteFile } from "@/utils/fileStorage";
 
 
@@ -9,7 +9,7 @@ export async function registerDocument({ visita_id, tipo_doc, file }) {
 
     try {
         // 🔎 Verificar si ya existe documento para esa visita
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabaseClient()
             .from("Documentos")
             .select("id")
             .eq("visita_id", visita_id)
@@ -38,7 +38,7 @@ export async function registerDocument({ visita_id, tipo_doc, file }) {
         savedFileName = saveFile(buffer, file.name);
 
         // 🗄 Guardar metadata en DB
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
             .from("Documentos")
             .insert([
                 {
@@ -68,7 +68,7 @@ const uploadPath = path.join(process.cwd(), "storage", "documents");
 
 export async function downloadDocument(visita_id) {
     // Buscar metadata
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Documentos")
         .select("file_name, mime_type")
         .eq("visita_id", visita_id)
@@ -96,7 +96,7 @@ export async function downloadDocument(visita_id) {
 export async function deleteDocument(visita_id) {
 
     // 1️⃣ Buscar metadata del documento
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Documentos")
         .select("file_name")
         .eq("visita_id", visita_id)
@@ -110,7 +110,7 @@ export async function deleteDocument(visita_id) {
     deleteFile(data.file_name);
 
     // 3️⃣ Eliminar registro en base de datos
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await getSupabaseClient()
         .from("Documentos")
         .delete()
         .eq("visita_id", visita_id);

@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import bcrypt from "bcryptjs";
 
 export async function POST(req) {
@@ -23,7 +23,7 @@ export async function POST(req) {
         }
 
         // Buscar token válido
-        const { data: resetToken, error } = await supabase
+        const { data: resetToken, error } = await getSupabaseClient()
             .from("reset_tokens")
             .select("*")
             .eq("token", token)
@@ -49,7 +49,7 @@ export async function POST(req) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Actualizar contraseña del usuario
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabaseClient()
             .from("Usuarios_Internos")
             .update({ password: hashedPassword })
             .eq("id", resetToken.usuario_id);
@@ -57,7 +57,7 @@ export async function POST(req) {
         if (updateError) throw updateError;
 
         // Marcar token como usado
-        await supabase
+        await getSupabaseClient()
             .from("reset_tokens")
             .update({ used: true })
             .eq("id", resetToken.id);

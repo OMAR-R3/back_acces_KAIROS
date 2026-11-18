@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
     from: vi.fn(), query: vi.fn(), update: vi.fn(), read: vi.fn(), reread: vi.fn(), history: vi.fn(),
     approval: vi.fn(), cancellation: vi.fn(), log: vi.fn()
 }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { from: mocks.from } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ from: mocks.from }) }));
 vi.mock("../../utils/qrGenerator.js", () => ({ generateQR: vi.fn(async () => "image"), generateQRToken: vi.fn(() => "qr") }));
 vi.mock("../../services/emailService.js", () => ({ sendApprovalEmail: mocks.approval, sendCancellationEmail: mocks.cancellation }));
 vi.mock("@/services/logService.js", () => ({ createLog: mocks.log }));

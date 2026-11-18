@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/middlewares/auth";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 /*
   GET /api/auth/me
@@ -13,7 +13,7 @@ export async function GET(req) {
         const payload = checkAuth(req);
 
         // Traer datos frescos de la BD por si cambió algo
-        const { data: usuario, error } = await supabase
+        const { data: usuario, error } = await getSupabaseClient()
             .from("Usuarios_Internos")
             .select("id, nombre, apellido_paterno, apellido_materno, rol")
             .eq("id", payload.id)

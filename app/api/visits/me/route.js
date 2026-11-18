@@ -5,7 +5,7 @@ import { checkRole } from "@/middlewares/auth";
 import { verificarSesionVisitante } from "@/middlewares/sesionVisitante";
 import { checkRateLimit } from "@/middlewares/rateLimit";
 
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import { createVisit, getVisitsByVisitanteId } from "@/services/visitService";
 
 // POST /api/visits/me
@@ -81,7 +81,7 @@ export async function POST(req) {
             return bad("El motivo no puede pasar de 500 caracteres");
         }
 
-        const { data: depto, error: deptoError } = await supabase
+        const { data: depto, error: deptoError } = await getSupabaseClient()
             .from("Departamentos")
             .select("id")
             .eq("id", depto_id)

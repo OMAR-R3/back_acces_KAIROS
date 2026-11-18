@@ -15,7 +15,7 @@ const selectMock = vi.fn(() => ({ eq: eqMock }));
 const fromMock = vi.fn(() => ({ select: selectMock }));
 
 vi.mock("../../db/supabaseClient.js", () => ({
-    supabase: { from: fromMock },
+    getSupabaseClient: () => ({ from: fromMock }),
 }));
 
 vi.mock("../../utils/qrGenerator.js", () => ({

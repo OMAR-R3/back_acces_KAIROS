@@ -1,10 +1,10 @@
-import { supabase } from "../db/supabaseClient.js";
+import { getSupabaseClient } from "../db/supabaseClient.js";
 
 /* =========================
    GET - Todos los visitantes
 ========================= */
 export async function getVisitantes() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitantes")
         .select("id, nombre, apellido_paterno, apellido_materno, correo, telefono, created_at")
 
@@ -16,7 +16,7 @@ export async function getVisitantes() {
    GET - Buscar visitante por correo
 ========================= */
 export async function getVisitanteByCorreo(correo) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitantes")
         .select("*")
         .eq("correo", correo)
@@ -30,7 +30,7 @@ export async function getVisitanteByCorreo(correo) {
    POST - Crear visitante
 ========================= */
 export async function createVisitante(visitante) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitantes")
         .insert(visitante)
         .select()
@@ -46,7 +46,7 @@ export async function createVisitante(visitante) {
 export async function updateVisitante(id, visitante) {
     const { id: _, ...dataToUpdate } = visitante;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitantes")
         .update(dataToUpdate)
         .eq("id", id)
@@ -61,7 +61,7 @@ export async function updateVisitante(id, visitante) {
    DELETE - Eliminar visitante
 ========================= */
 export async function deleteVisitante(id) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitantes")
         .delete()
         .eq("id", id)
