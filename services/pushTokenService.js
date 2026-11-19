@@ -20,12 +20,13 @@ export const upsertPushToken = async ({ visitante_id, token, plataforma }) => {
 };
 
 // Borra el token solo si pertenece al visitante. No falla si no existe.
-export const deletePushToken = async ({ visitante_id, token }) => {
-    const { error } = await getSupabaseClient()
+export const deletePushToken = async ({ visitante_id, token, signal }) => {
+    const query = getSupabaseClient()
         .from("Dispositivos_Push")
         .delete()
         .eq("token", token)
         .eq("visitante_id", Number(visitante_id));
+    const { error } = await (signal ? query.abortSignal(signal) : query);
 
     if (error) throw new Error(error.message);
 };

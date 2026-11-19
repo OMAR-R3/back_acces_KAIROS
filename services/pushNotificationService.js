@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "../db/supabaseClient.js";
+import { deletePushToken } from "./pushTokenService.js";
 
 const TOKEN_REGEX = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{10,100}\]$/;
 const TIMEOUT_MS = 5000;
@@ -26,6 +27,7 @@ export const sendVisitStatusPush = async ({ id, visitante_id, estado }) => {
     const controller = new AbortController();
     let timer;
     let stage = "consulta de tokens";
+    const deletions = [];
     const operation = async () => {
         const { data, error } = await getSupabaseClient()
             .from("Dispositivos_Push")
@@ -55,18 +57,29 @@ export const sendVisitStatusPush = async ({ id, visitante_id, estado }) => {
             });
             if (!response.ok) throw new Error("expo_http_failed");
             const result = await response.json();
+            if (controller.signal.aborted) return;
             if (result.errors?.length || !Array.isArray(result.data)
                 || result.data.length !== batch.length) {
                 throw new Error("expo_invalid_response");
             }
             const failed = result.data.filter(ticket => ticket?.status !== "ok").length;
+            // Expo devuelve los tickets en el mismo orden que los mensajes del lote.
+            result.data.forEach((ticket, index) => {
+                if (ticket?.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
+                    deletions.push(deletePushToken({
+                        visitante_id, token: batch[index], signal: controller.signal,
+                    }).catch(() => {
+                        console.error("Push: no se pudo eliminar un token inválido", { visita_id: id });
+                    }));
+                }
+            });
             if (failed) console.error("Push: Expo rechazó notificaciones", { visita_id: id, cantidad: failed });
         }
     };
 
     try {
         await Promise.race([
-            operation(),
+            operation().finally(() => Promise.all(deletions)),
             new Promise((_, reject) => {
                 timer = setTimeout(() => {
                     controller.abort();
