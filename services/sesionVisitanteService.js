@@ -1,8 +1,8 @@
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 // Registra el jti de un JWT de visitante como cerrado. Es idempotente.
 export const revocarSesion = async ({ jti, visitante_id, exp }) => {
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
         .from("sesiones_revocadas")
         .upsert(
             {
@@ -17,7 +17,7 @@ export const revocarSesion = async ({ jti, visitante_id, exp }) => {
 };
 
 export const sesionRevocada = async jti => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("sesiones_revocadas")
         .select("jti")
         .eq("jti", jti)
@@ -29,7 +29,7 @@ export const sesionRevocada = async jti => {
 
 // Borra las filas cuyo JWT ya venció; ya no hacen falta.
 export const limpiarSesionesExpiradas = async () => {
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
         .from("sesiones_revocadas")
         .delete()
         .lt("expira_en", new Date().toISOString());

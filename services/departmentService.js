@@ -1,10 +1,10 @@
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 /* =========================
    GET - Todos los departamentos
 ========================= */
 export async function getDepartamentos() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Departamentos")
         .select("*")
         .order("nombre", { ascending: true });
@@ -19,7 +19,7 @@ export async function getDepartamentos() {
 export async function createDepartamento(departamento) {
     console.log("Intentando crear departamento:", departamento);
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Departamentos")
         .insert(departamento)
         .select()
@@ -35,7 +35,7 @@ export async function createDepartamento(departamento) {
 export async function updateDepartamento(id, departamento) {
     const { id: _, ...dataToUpdate } = departamento;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Departamentos")
         .update(dataToUpdate)
         .eq("id", id)
@@ -50,7 +50,7 @@ export async function updateDepartamento(id, departamento) {
    DELETE - Eliminar departamento
 ========================= */
 export async function deleteDepartamento(id) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Departamentos")
         .delete()
         .eq("id", id)

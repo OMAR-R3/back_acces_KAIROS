@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { rpc: mocks.rpc } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ rpc: mocks.rpc }) }));
 import { consumeVisitQR } from "../../services/qrAccessService.js";
 const token = "12345678-1234-4123-8123-123456789abc";
 beforeEach(() => vi.resetAllMocks());

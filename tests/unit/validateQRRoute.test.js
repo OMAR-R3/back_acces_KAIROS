@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ consume: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/services/qrAccessService", () => ({ consumeVisitQR: mocks.consume }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { rpc: mocks.rpc } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ rpc: mocks.rpc }) }));
 import { POST } from "../../app/api/visits/validate-qr/route.js";
 const { consumeVisitQR } = await vi.importActual("../../services/qrAccessService.js");
 

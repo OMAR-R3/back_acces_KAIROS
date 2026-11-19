@@ -5,7 +5,7 @@ import { checkAuth, checkRole } from "@/middlewares/auth";
 import { getVisitanteByCorreo, createVisitante } from "@/services/visitorService";
 import { createVisitInternal } from "@/services/visitService";
 import { registerDocument } from "@/services/documentService";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 /*
   POST /api/visits/register-internal
@@ -95,7 +95,7 @@ export async function POST(req) {
         documentoGuardado = true;
 
         // Log de la acción
-        await supabase.from("Logs_Acceso").insert([{
+        await getSupabaseClient().from("Logs_Acceso").insert([{
             usuario_id: Number(usuario_id),
             accion: `Registró visita interna ID ${visita_id} para ${visitante.nombre} ${visitante.apellido_paterno}`,
             fecha: new Date().toISOString()
@@ -114,7 +114,7 @@ export async function POST(req) {
     } catch (error) {
         // Rollback si el documento falló después de crear la visita
         if (visita_id && !documentoGuardado) {
-            await supabase.from("Visitas").delete().eq("id", visita_id);
+            await getSupabaseClient().from("Visitas").delete().eq("id", visita_id);
         }
 
         console.error("Error en register-internal:", error.message);

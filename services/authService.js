@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import { signToken } from "@/utils/jwt";
 
 import {
@@ -17,7 +17,7 @@ export async function loginUsuario({ nombre_usuario, password }, dispositivo = "
     }
 
     // Buscar usuario por nombre
-    const { data: usuario, error: dbError } = await supabase
+    const { data: usuario, error: dbError } = await getSupabaseClient()
         .from("Usuarios_Internos")
         .select("id, nombre, apellido_paterno, rol, password")
         .eq("nombre", nombre_usuario.trim())

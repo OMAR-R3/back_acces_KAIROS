@@ -1,10 +1,10 @@
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 // Registra el token push de un dispositivo del visitante.
 // Si el token ya existía (por ejemplo, otra cuenta inició sesión en el mismo
 // teléfono), se reasigna al visitante actual en lugar de duplicarlo.
 export const upsertPushToken = async ({ visitante_id, token, plataforma }) => {
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
         .from("Dispositivos_Push")
         .upsert(
             {
@@ -21,7 +21,7 @@ export const upsertPushToken = async ({ visitante_id, token, plataforma }) => {
 
 // Borra el token solo si pertenece al visitante. No falla si no existe.
 export const deletePushToken = async ({ visitante_id, token, signal }) => {
-    const query = supabase
+    const query = getSupabaseClient()
         .from("Dispositivos_Push")
         .delete()
         .eq("token", token)

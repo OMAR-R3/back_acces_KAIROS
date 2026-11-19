@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import crypto from "crypto";
 
 export async function POST(req) {
@@ -16,7 +16,7 @@ export async function POST(req) {
         }
 
         // Buscar usuario por correo — no revelar si existe o no por seguridad
-        const { data: usuario } = await supabase
+        const { data: usuario } = await getSupabaseClient()
             .from("Usuarios_Internos")
             .select("id, nombre, correo")
             .eq("correo", correo.trim().toLowerCase())
@@ -32,7 +32,7 @@ export async function POST(req) {
         }
 
         // Invalidar tokens anteriores del mismo usuario
-        await supabase
+        await getSupabaseClient()
             .from("reset_tokens")
             .update({ used: true })
             .eq("usuario_id", usuario.id)
@@ -43,7 +43,7 @@ export async function POST(req) {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
         // Guardar token en BD
-        const { error: insertError } = await supabase
+        const { error: insertError } = await getSupabaseClient()
             .from("reset_tokens")
             .insert([{
                 usuario_id: usuario.id,

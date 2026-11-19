@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
     compare: vi.fn(),
 }));
 
-vi.mock("@/db/supabaseClient", () => ({ supabase: {} }));
+vi.mock("@/db/supabaseClient", () => ({ getSupabaseClient: () => ({}) }));
 vi.mock("@/services/visitorService", () => ({
     getVisitanteByCorreo: mocks.getVisitanteByCorreo,
     createVisitante: vi.fn(),
