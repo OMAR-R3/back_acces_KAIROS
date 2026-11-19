@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/db/supabaseClient";
 import { generateQR } from "@/utils/qrGenerator";
 import { resendQREmail } from "@/services/emailService";
+import { checkRateLimits, getClientIp, RateLimitError } from "@/middlewares/rateLimit";
+
+const WINDOW_MS = 60 * 60 * 1000;
 
 /*
   POST /api/visits/resend-qr
@@ -14,6 +17,7 @@ import { resendQREmail } from "@/services/emailService";
 */
 export async function POST(req) {
     try {
+        checkRateLimits([{ key: `resend-qr:ip:${getClientIp(req) || "unknown"}`, max: 10 }], WINDOW_MS);
         const { visita_id, correo } = await req.json();
 
         if (!visita_id || !correo) {
@@ -67,6 +71,11 @@ export async function POST(req) {
             );
         }
 
+        checkRateLimits([
+            { key: `resend-qr:visita:${visita.id}`, max: 3 },
+            { key: `resend-qr:correo:${visita.Visitantes.correo.toLowerCase()}`, max: 3 },
+        ], WINDOW_MS);
+
         // Regenerar imagen QR a partir del token guardado
         const qrImage = await generateQR(visita.qr_code);
 
@@ -87,7 +96,7 @@ export async function POST(req) {
     } catch (error) {
         return NextResponse.json(
             { error: error.message },
-            { status: 500 }
+            { status: error instanceof RateLimitError ? 429 : 500 }
         );
     }
 }
