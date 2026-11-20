@@ -34,7 +34,30 @@ export function checkRateLimit(req, { windowMs = 15 * 60 * 1000, max = 5, keySuf
     }
 }
 
-function getClientIp(req) {
+export class RateLimitError extends Error {}
+
+// Reserve all quotas together so a rejected request consumes none of them.
+export function checkRateLimits(limits, windowMs) {
+    const now = Date.now();
+    const reservations = limits.map(({ key, max }) => {
+        const bucket = buckets.get(key);
+        const active = bucket && now - bucket.start < windowMs
+            ? bucket
+            : { start: now, count: 0, windowMs };
+
+        if (active.count >= max) {
+            throw new RateLimitError("Demasiadas solicitudes, intenta más tarde");
+        }
+        return { key, bucket: active };
+    });
+
+    for (const { key, bucket } of reservations) {
+        bucket.count++;
+        buckets.set(key, bucket);
+    }
+}
+
+export function getClientIp(req) {
     const forwarded = req.headers.get("x-forwarded-for");
     if (forwarded) return forwarded.split(",")[0].trim();
     return "unknown"; // si esto se repite mucho, revisar la config de nginx
