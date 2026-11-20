@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import jwt from "jsonwebtoken";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), visit: vi.fn(), log: vi.fn() }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { rpc: mocks.rpc } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("@/services/visitService", () => ({ validateQR: mocks.visit }));
 vi.mock("@/services/logService", () => ({ createLog: mocks.log }));
 vi.mock("@/utils/jwt", async () => {

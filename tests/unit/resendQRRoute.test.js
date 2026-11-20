@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ findVisit: vi.fn(), generateQR: vi.fn(), send: vi.fn() }));
 vi.mock("@/db/supabaseClient", () => ({
-    supabase: {
+    getSupabaseClient: () => ({
         from: () => ({
             select: () => ({
                 eq: (_column, id) => ({ single: () => mocks.findVisit(id) }),
             }),
         }),
-    },
+    }),
 }));
 vi.mock("@/utils/qrGenerator", () => ({ generateQR: mocks.generateQR }));
 vi.mock("@/services/emailService", () => ({ resendQREmail: mocks.send }));

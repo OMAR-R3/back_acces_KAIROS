@@ -2,7 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), email: vi.fn() }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { rpc: mocks.rpc } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("../../services/emailService.js", () => ({ sendLookupCodeEmail: mocks.email }));
 import { requestLookupCode, verifyLookupCode, authorizeLookup, revokeLookup } from "../../services/lookupAccessService.js";
 

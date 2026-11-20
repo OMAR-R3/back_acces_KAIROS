@@ -1,10 +1,10 @@
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 /* =========================
    POST - Crear log
 ========================= */
 export async function createLog(usuario_id, accion) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Logs_Acceso")
         .insert([{
             usuario_id,
@@ -23,7 +23,7 @@ export async function createLog(usuario_id, accion) {
    Si se pasa usuario_id filtra por ese usuario
 ========================= */
 export async function getLogs(usuario_id = null) {
-    let query = supabase
+    let query = getSupabaseClient()
         .from("Logs_Acceso")
         .select(`
             *,
@@ -47,7 +47,7 @@ export async function getLogs(usuario_id = null) {
    DELETE - Eliminar log por id
 ========================= */
 export async function deleteLog(id) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Logs_Acceso")
         .delete()
         .eq("id", id)

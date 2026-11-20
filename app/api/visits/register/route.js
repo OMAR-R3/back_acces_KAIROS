@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getVisitanteByCorreo, createVisitante } from "@/services/visitorService";
 import { createVisit } from "@/services/visitService";
 import { registerDocument } from "@/services/documentService";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 export async function POST(req) {
     let visita_id = null;
@@ -77,7 +77,7 @@ export async function POST(req) {
         await registerDocument({ visita_id, tipo_doc, file: archivo });
         documentoGuardado = true;
 
-        await supabase.from("Historial_Estados").insert([{
+        await getSupabaseClient().from("Historial_Estados").insert([{
             visita_id,
             usuario_id: null,
             estado_nuevo: "pendiente",
@@ -97,7 +97,7 @@ export async function POST(req) {
 
     } catch (error) {
         if (visita_id && !documentoGuardado) {
-            await supabase.from("Visitas").delete().eq("id", visita_id);
+            await getSupabaseClient().from("Visitas").delete().eq("id", visita_id);
         }
         console.error("Error en register:", error.message);
         return NextResponse.json(

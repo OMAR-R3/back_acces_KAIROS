@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, randomInt, randomUUID } from "node:crypto";
-import { supabase } from "../db/supabaseClient.js";
+import { getSupabaseClient } from "../db/supabaseClient.js";
 import { sendLookupCodeEmail } from "./emailService.js";
 import { normalizeLookupCorreo, validLookupCorreo } from "../utils/lookupPolicy.js";
 
@@ -20,7 +20,7 @@ export async function requestLookupCode(correoValue, clientIp) {
     const challengeId = randomUUID();
     const browserSecret = secretToken();
     const code = String(randomInt(0, 100_000_000)).padStart(8, "0");
-    const { data, error } = await supabase.rpc("lookup_issue_challenge", {
+    const { data, error } = await getSupabaseClient().rpc("lookup_issue_challenge", {
         p_id: challengeId,
         p_correo: correo,
         p_browser_hash: hash(browserSecret),
@@ -46,7 +46,7 @@ export async function verifyLookupCode({ challengeId, browserSecret, code } = {}
     const accessToken = secretToken();
     // DB locks the challenge, increments attempts, consumes once and inserts the
     // session in ONE transaction. No check-then-update race in application code.
-    const { data, error } = await supabase.rpc("lookup_verify_challenge", {
+    const { data, error } = await getSupabaseClient().rpc("lookup_verify_challenge", {
         p_id: challengeId,
         p_browser_hash: hash(browserSecret),
         p_code_hash: keyedHash(`code:${challengeId}:${code}`),
@@ -61,7 +61,7 @@ export async function authorizeLookup(req, correo) {
     const authorization = req.headers.get("authorization") ?? "";
     const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
     if (!tokenSyntax(token)) return false;
-    const { data, error } = await supabase.rpc("lookup_authorize_session", {
+    const { data, error } = await getSupabaseClient().rpc("lookup_authorize_session", {
         p_session_hash: hash(token), p_correo: correo,
     });
     if (error) throw new Error("Lookup storage unavailable");
@@ -72,6 +72,6 @@ export async function revokeLookup(req) {
     const authorization = req.headers.get("authorization") ?? "";
     const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
     if (!tokenSyntax(token)) return;
-    const { error } = await supabase.rpc("lookup_revoke_session", { p_session_hash: hash(token) });
+    const { error } = await getSupabaseClient().rpc("lookup_revoke_session", { p_session_hash: hash(token) });
     if (error) throw new Error("Lookup storage unavailable");
 }

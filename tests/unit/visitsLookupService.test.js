@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), visitor: vi.fn(), visits: vi.fn(),
     visitorEq: vi.fn(), visitEq: vi.fn(), visitorSelect: vi.fn(), visitSelect: vi.fn(), order: vi.fn() }));
-vi.mock("../../db/supabaseClient.js", () => ({ supabase: { from: mocks.from } }));
+vi.mock("../../db/supabaseClient.js", () => ({ getSupabaseClient: () => ({ from: mocks.from }) }));
 vi.mock("../../utils/qrGenerator.js", () => ({ generateQR: vi.fn(), generateQRToken: vi.fn() }));
 vi.mock("../../services/emailService.js", () => ({ sendApprovalEmail: vi.fn(), sendCancellationEmail: vi.fn() }));
 vi.mock("@/services/logService.js", () => ({ createLog: vi.fn() }));

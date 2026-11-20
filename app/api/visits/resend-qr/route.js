@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 import { generateQR } from "@/utils/qrGenerator";
 import { resendQREmail } from "@/services/emailService";
 import { checkRateLimits, getClientIp, RateLimitError } from "@/middlewares/rateLimit";
@@ -28,7 +28,7 @@ export async function POST(req) {
         }
 
         // Buscar la visita con datos del visitante
-        const { data: visita, error } = await supabase
+        const { data: visita, error } = await getSupabaseClient()
             .from("Visitas")
             .select(`
                 *,

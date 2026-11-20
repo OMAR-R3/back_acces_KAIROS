@@ -1,4 +1,4 @@
-import { supabase } from "../db/supabaseClient.js";
+import { getSupabaseClient } from "../db/supabaseClient.js";
 import { generateQR, generateQRToken } from "../utils/qrGenerator.js";
 import { sendApprovalEmail, sendCancellationEmail } from "../services/emailService.js";
 import { createLog } from "@/services/logService.js";
@@ -8,7 +8,7 @@ import { sendVisitStatusPush } from "./pushNotificationService.js";
     estado=pendiente&fecha=2026-03-22
 ========================= */
 export const getAllVisits = async (filters = {}) => {
-    let query = supabase
+    let query = getSupabaseClient()
         .from("Visitas")
         .select(`
             *,
@@ -30,7 +30,7 @@ export const getAllVisits = async (filters = {}) => {
     GET BY ID - con documentos
 ========================= */
 export const getVisitById = async (id) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             *,
@@ -50,7 +50,7 @@ export const getVisitById = async (id) => {
 ========================= */
 export const getVisitsByCorreo = async (correo) => {
     // Primero buscar el visitante
-    const { data: visitante, error: visitanteError } = await supabase
+    const { data: visitante, error: visitanteError } = await getSupabaseClient()
         .from("Visitantes")
         .select("id")
         .eq("correo", correo)
@@ -60,7 +60,7 @@ export const getVisitsByCorreo = async (correo) => {
     if (!visitante) return []; // No existe visitante con ese correo
 
     // Luego sus visitas
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             id,
@@ -82,7 +82,7 @@ export const getVisitsByCorreo = async (correo) => {
     GET BY VISITANTE ID - para la app movil (historial propio)
 ========================= */
 export const getVisitsByVisitanteId = async (visitanteId) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             id,
@@ -105,7 +105,7 @@ export const getVisitsByVisitanteId = async (visitanteId) => {
     GET DETALLE - visita propia del visitante (app movil)
 ========================= */
 export const getVisitByIdAndVisitanteId = async (id, visitanteId) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             id,
@@ -128,7 +128,7 @@ export const getVisitByIdAndVisitanteId = async (id, visitanteId) => {
     QR de una visita del visitante (id + visitante_id)
 ========================= */
 export const getVisitQRByIdAndVisitanteId = async (id, visitanteId) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             id,
@@ -154,7 +154,7 @@ export const createVisit = async (visitData) => {
     const { visitante_id, depto_id, fecha, hora_inicio, motivo } = visitData;
 
     // Validar que no exista visita duplicada
-    const { data: existing, error: existingError } = await supabase
+    const { data: existing, error: existingError } = await getSupabaseClient()
         .from("Visitas")
         .select("id")
         .eq("visitante_id", Number(visitante_id))
@@ -171,7 +171,7 @@ export const createVisit = async (visitData) => {
     }
 
     // Insertar visita en estado pendiente, sin QR aún
-    const { data: visit, error: insertError } = await supabase
+    const { data: visit, error: insertError } = await getSupabaseClient()
         .from("Visitas")
         .insert([{
             visitante_id: Number(visitante_id),
@@ -196,7 +196,7 @@ export const createVisitInternal = async (visitData, usuario_id) => {
     const { visitante_id, depto_id, fecha, hora_inicio, motivo } = visitData;
 
     // Verificar duplicado
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabaseClient()
         .from("Visitas")
         .select("id")
         .eq("visitante_id", Number(visitante_id))
@@ -212,14 +212,14 @@ export const createVisitInternal = async (visitData, usuario_id) => {
     const qrImage = await generateQR(token);
 
     // Buscar datos del visitante para el correo
-    const { data: visitante } = await supabase
+    const { data: visitante } = await getSupabaseClient()
         .from("Visitantes")
         .select("nombre, correo")
         .eq("id", Number(visitante_id))
         .single();
 
     // Insertar visita ya aprobada
-    const { data: visit, error: insertError } = await supabase
+    const { data: visit, error: insertError } = await getSupabaseClient()
         .from("Visitas")
         .insert([{
             visitante_id: Number(visitante_id),
@@ -236,7 +236,7 @@ export const createVisitInternal = async (visitData, usuario_id) => {
     if (insertError) throw new Error(insertError.message);
 
     // Registrar en historial
-    await supabase.from("Historial_Estados").insert([{
+    await getSupabaseClient().from("Historial_Estados").insert([{
         visita_id: visit.id,
         usuario_id,
         estado_nuevo: "aprobada",
@@ -276,7 +276,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     }
 
     // Obtener visita + visitante
-    const { data: visit, error: fetchError } = await supabase
+    const { data: visit, error: fetchError } = await getSupabaseClient()
         .from("Visitas")
         .select(`*, Visitantes (nombre, correo)`)
         .eq("id", id)
@@ -303,7 +303,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
 
     // Comparar y actualizar en una sola operación: solo quien conserve
     // el estado leído obtiene una fila y puede emitir notificaciones.
-    const { data: updatedVisit, error: updateError } = await supabase
+    const { data: updatedVisit, error: updateError } = await getSupabaseClient()
         .from("Visitas")
         .update({
             estado,
@@ -317,7 +317,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     if (updateError) throw new Error(updateError.message);
 
     if (!updatedVisit) {
-        const { data: currentVisit, error: currentError } = await supabase
+        const { data: currentVisit, error: currentError } = await getSupabaseClient()
             .from("Visitas")
             .select("estado")
             .eq("id", id)
@@ -339,7 +339,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     }
 
     // Registrar en historial
-    await supabase.from("Historial_Estados").insert([{
+    await getSupabaseClient().from("Historial_Estados").insert([{
         visita_id: id,
         usuario_id,
         estado_nuevo: estado,
@@ -390,7 +390,7 @@ export const updateVisitStatus = async (id, { estado, motivo }, usuario_id) => {
     VALIDATE QR - para guardia en entrada
 ========================= */
 export const validateQR = async (token) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Visitas")
         .select(`
             *,
@@ -413,7 +413,7 @@ export const validateQR = async (token) => {
     DELETE
 ========================= */
 export const deleteVisit = async (id) => {
-    const { error } = await supabase
+    const { error } = await getSupabaseClient()
         .from("Visitas")
         .delete()
         .eq("id", id);

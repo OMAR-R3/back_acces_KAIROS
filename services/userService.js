@@ -1,4 +1,4 @@
-import { supabase } from "@/db/supabaseClient";
+import { getSupabaseClient } from "@/db/supabaseClient";
 
 /* =========================
    GET - Lista con filtros y paginación
@@ -7,7 +7,7 @@ import { supabase } from "@/db/supabaseClient";
 export async function getUsuarios(filters = {}) {
     const { q, rol, page = 1, limit = 10 } = filters;
 
-    let query = supabase
+    let query = getSupabaseClient()
         .from("Usuarios_Internos")
         .select("id, nombre, apellido_paterno, apellido_materno, rol, correo, created_at", { count: "exact" });
     if (rol?.trim()) {
@@ -49,7 +49,7 @@ export async function createUsuario(usuario) {
         usuario.password = await bcrypt.hash(usuario.password, 12);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Usuarios_Internos")
         .insert(usuario)
         .select("id, nombre, apellido_paterno, apellido_materno, rol, created_at")
@@ -69,7 +69,7 @@ export async function updateUsuario(id, usuario) {
         dataToUpdate.password = await bcrypt.hash(password, 12);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Usuarios_Internos")
         .update(dataToUpdate)
         .eq("id", id)
@@ -84,7 +84,7 @@ export async function updateUsuario(id, usuario) {
    DELETE - Eliminar usuario interno
 ========================= */
 export async function deleteUsuario(id) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
         .from("Usuarios_Internos")
         .delete()
         .eq("id", id)

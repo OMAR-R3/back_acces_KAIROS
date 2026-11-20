@@ -1,4 +1,4 @@
-import { supabase } from "../db/supabaseClient.js";
+import { getSupabaseClient } from "../db/supabaseClient.js";
 import { deletePushToken } from "./pushTokenService.js";
 
 const TOKEN_REGEX = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{10,100}\]$/;
@@ -29,7 +29,7 @@ export const sendVisitStatusPush = async ({ id, visitante_id, estado }) => {
     let stage = "consulta de tokens";
     const deletions = [];
     const operation = async () => {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseClient()
             .from("Dispositivos_Push")
             .select("token")
             .eq("visitante_id", visitante_id)
