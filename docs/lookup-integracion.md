@@ -1,15 +1,18 @@
 # Integración y activación de la autorización de lookup
 
-## Estado y límite de la entrega
+## Estado actual
 
-No se puede garantizar al mismo tiempo que un cliente actual que solo envía
-correo continúe funcionando sin cambios y que deje de acceder a visitas ajenas.
-Es imprescindible adaptar los consumidores antes de exigir una prueba de correo.
+El modo **enforced está activo en producción** desde el jueves 19 de noviembre de 2026
+(aprox. 11:14, hora de Ciudad de México). Verificado después de activarlo:
 
-La implementación permanece aislada por configuración, sin activación en producción.
-Mientras el modo sea legacy o prepare, la brecha sigue ABIERTA. No existe un
-segundo endpoint de historial, ni se declara resuelto el problema por disponer
-de rutas de verificación. No se ha aplicado la migración ni configurado secretos.
+- `GET /api/visits/lookup?correo=...` sin Bearer, desde fuera del servidor: 401.
+- Flujo completo en la extranet: pedir código, verificar, consultar y cerrar sesión.
+- App móvil: se corrigió el consumo del historial (PR #66, usa `/api/visits/lookup`
+  con Bearer). La prueba en celular físico está pendiente (ver ClickUp, Sprint 9).
+
+No se puede garantizar al mismo tiempo que un cliente que solo envía el correo
+continúe funcionando sin cambios y que deje de acceder a visitas ajenas: todos los
+consumidores deben enviar el Bearer. `resend-qr` sigue siendo público en todos los modos.
 
 ## Modos (LOOKUP_ACCESS_MODE, configuración del servidor)
 
@@ -153,8 +156,7 @@ y los resultados de pantalla; si falla la petición, la sesión vive hasta caduc
    en el destino. No se aplica al arrancar la aplicación. Configurar correo y
    LOOKUP_CODE_SECRET; comprobar permisos y RPC de PostgREST en ese entorno.
 3. Habilitar prepare para integrar. Adaptar AMBOS consumidores o confirmar con
-   sus responsables que no llaman a lookup. No se dispone de sus repositorios:
-   esta condición aún NO está acreditada.
+   sus responsables que no llaman a lookup.
 4. En staging con enforced ejecutar pruebas de navegador y DB: anónimos denegados,
    código correcto, incorrecto, expirado, replay y concurrencia, cambio de correo,
    revocación, caída de DB sin fallback, CORS/preflight, lista vacía y reenvío QR.
@@ -172,11 +174,27 @@ La condición de cierre es que TODOS los accesos a este endpoint pasen por
 enforced, sin fallback, con integración verificada en ambos consumidores y
 pruebas reales satisfactorias. Una variable de entorno por sí sola no demuestra
 que estos requisitos se hayan cumplido. No hay activación automática ni fecha
-de corte implícita. Nada de esto se ha ejecutado en producción en esta tarea.
+de corte implícita.
 
-Si es necesario revertir, preferir un 503 temporal conservando enforced y las
-protecciones. Volver a legacy/prepare restaura compatibilidad anónima pero REABRE
-la brecha; requiere una decisión explícita y no puede declararse solución segura.
+### Registro de la activación
+
+- 2026-11-19: `LOOKUP_ACCESS_MODE=enforced` en producción. Pendiente de cerrar: prueba
+  en dispositivo físico de la app con el PR #66.
+
+### Rollback (probado en el servidor)
+
+Si enforced causa problemas en producción:
+
+1. En el servidor: `cd ~/kairos`
+2. Cambiar el modo: `sed -i 's/^LOOKUP_ACCESS_MODE=.*/LOOKUP_ACCESS_MODE=prepare/' Backend/.env.local`
+3. Recrear el contenedor: `docker compose up -d --force-recreate backend`
+4. Comprobar con `curl` que el GET responde según el modo esperado.
+
+Hay una copia del `.env.local` anterior en `~/env.local.bak-lookup` (fuera de la
+carpeta Backend para que Docker no la copie al contenedor).
+
+Volver a prepare/legacy **reabre la brecha** (GET anónimo). Debe ser temporal,
+con responsable y plazo, y registrarse como excepción de seguridad.
 
 ## Operación y riesgos pendientes
 
@@ -185,12 +203,16 @@ la brecha; requiere una decisión explícita y no puede declararse solución seg
 - El registro móvil existente puede establecer contraseña en visitantes sin
   cuenta sin verificar correo. Requiere revisión separada; no se modifica aquí.
   No debe afirmarse que proteger lookup sanea toda la plataforma.
-- El reenvío QR público conserva sus mensajes y posibles envíos no solicitados.
-- Proteger el proxy: sustituir x-forwarded-for y evitar acceso directo al backend.
-  Las cuotas de IP dependen de ello. Hay límites por correo/desafío en DB, pero
-  un atacante distribuido aún puede generar envíos a muchas direcciones distintas.
-  Validar presupuesto/alertas del proveedor y controles adicionales antes de activar
-  las rutas de correo en producción. SMTP no dispone aquí de cola ni reintentos.
+- El reenvío QR público ahora tiene límite por hora: 10 por IP, 3 por visita y 3 por
+  correo (responde 429). Ya está en `main`; se despliega en el Sprint 10.
+- Proxy: el nginx actual usa `$proxy_add_x_forwarded_for`, así que el primer valor de
+  `x-forwarded-for` lo puede falsear el cliente y los límites por IP se pueden saltar.
+  Corrección pendiente: `proxy_set_header X-Forwarded-For $remote_addr;` en el bloque
+  del backend (tarea en el Sprint 10). Los límites por correo y por visita no dependen
+  de esto. Evitar también el acceso directo al backend. Hay límites por correo/desafío
+  en DB, pero un atacante distribuido aún puede generar envíos a muchas direcciones
+  distintas. Validar presupuesto/alertas del proveedor y controles adicionales.
+  SMTP no dispone aquí de cola ni reintentos.
 - Los tokens Bearer robados sirven hasta caducar/revocarse: HTTPS, exclusión de
   logs/analítica y prevención de XSS son requisitos de integración. No admitir
   credenciales en query string. No crear una excepción por Origin o por rol móvil.
@@ -233,14 +255,11 @@ Para reproducir en una base PostgreSQL 14+ DESECHABLE y local llamada lookup_tes
 5. Verificar además RPC reales de Supabase/PostgREST, envío de correo y navegadores
    de intranet/extranet en staging. Estas integraciones no están disponibles aquí.
 
-Resultado local de esta etapa: 123 pruebas aprobadas; cuatro pruebas PostgreSQL
-omitidas por falta de psql/base local. Build de producción completado usando
-SUPABASE_URL=https://example.invalid y una clave ficticia solo en el proceso de
-compilación, con modo legacy. Esto comprueba compilación, no conectividad ni
+Resultado local de la etapa original: 123 pruebas aprobadas; cuatro pruebas
+PostgreSQL omitidas por falta de psql/base local. Build de producción completado
+usando SUPABASE_URL=https://example.invalid y una clave ficticia solo en el proceso
+de compilación, con modo legacy. Esto comprueba compilación, no conectividad ni
 funcionamiento del proveedor. Persisten avisos previos de turbopack y múltiples
 lockfiles. `npm run lint` no puede ejecutarse: no existe el script ni instalación
 de ESLint. `git diff --check` pasa. No se añaden dependencias para ocultar estas
 limitaciones.
-
-No se certifican criterios de ClickUp ausentes ni compatibilidad de interfaces
-cuyo código no está disponible. No se realizaron commit, push, PR o despliegue.
