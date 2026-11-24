@@ -180,6 +180,10 @@ de corte implícita.
 
 - 2026-11-19: `LOOKUP_ACCESS_MODE=enforced` en producción. Pendiente de cerrar: prueba
   en dispositivo físico de la app con el PR #66.
+- 2026-11-20: prueba en dispositivo físico de la app con el PR #66 cerrada.
+- 2026-11-23: nginx fija `X-Forwarded-For` con la IP real en el bloque del backend;
+  backend desplegado con el límite de `resend-qr` (429 al pasar el límite por IP, visita
+  o correo); limpieza diaria programada con pg_cron en Supabase.
 
 ### Rollback (probado en el servidor)
 
@@ -220,12 +224,17 @@ con responsable y plazo, y registrarse como excepción de seguridad.
   intento; la interfaz debe conservarlo localmente en memoria.
 - Las cuotas pueden afectar a usuarios tras NAT y a correos con reintentos de
   entrega. Validar esos umbrales con tráfico real y proporcionar mensajes claros.
-- La tabla de desafíos contiene correos. Programar limpieza al menos diaria con
-  la herramienta operativa ya usada por el despliegue (no se verificó scheduler):
+- La tabla de desafíos contiene correos. La limpieza ya está programada con pg_cron
+  en Supabase (no en el servidor ni en Docker): trabajo `limpieza-lookup-diaria`,
+  todos los días a las 9:00 UTC (3:00 am hora de Ciudad de México). Para revisarla:
+  `select jobid, jobname, schedule, active from cron.job;` y, para ver sus corridas,
+  `select status, start_time from cron.job_run_details order by start_time desc limit 5;`.
+  La primera corrida automática terminó con status `succeeded` el 2026-11-24.
+  Ejecuta, en este orden (primero sesiones y luego desafíos):
 
 ```sql
-delete from public.lookup_challenges where created_at < now() - interval '24 hours';
 delete from public.lookup_sessions where expires_at < now();
+delete from public.lookup_challenges where created_at < now() - interval '24 hours';
 ```
 
 No borrar desafíos dentro de la ventana de una hora, porque participan en la cuota.
